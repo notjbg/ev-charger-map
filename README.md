@@ -74,4 +74,4 @@ MIT
 
 ## Author
 
-Built by [Jonah Berg-Ganzarain](https://github.com/notjbg) — Senior Manager, Strategic Communications at TRC Companies (Clean Transportation Solutions).
+Built by [Jonah Berg](https://github.com/notjbg).
