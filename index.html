@@ -1796,6 +1796,8 @@ body {
     if (filters.network !== 'all') params.set('net', filters.network);
     if (filters.facility !== 'all') params.set('fac', filters.facility);
     if (filters.funding !== 'all') params.set('fund', filters.funding);
+    if (filters.status !== 'E') params.set('st', filters.status);
+    if (filters.state !== 'all') params.set('state', filters.state);
     if (filters.search) params.set('q', filters.search);
     if (selectedStationId) params.set('sid', selectedStationId);
     window.history.replaceState(null, '', '#' + params.toString());
@@ -1835,6 +1837,14 @@ body {
       filters.funding = params.get('fund');
       activateChip('funding', filters.funding);
     }
+    if (params.has('st')) {
+      filters.status = params.get('st');
+      activateChip('status', filters.status);
+    }
+    if (params.has('state')) {
+      filters.state = params.get('state');
+      activateChip('state', filters.state);
+    }
     if (params.has('q')) {
       filters.search = params.get('q');
       document.getElementById('searchInput').value = filters.search;
@@ -1856,6 +1866,12 @@ body {
     clearTimeout(hashTimeout);
     hashTimeout = setTimeout(saveStateToHash, 500);
   }
+
+  // ── Print-friendly styles ────────────────────────────────────────────
+  // Add print CSS for exporting map views
+  const printStyle = document.createElement('style');
+  printStyle.textContent = '@media print { .sidebar, .legend, .map-info, .locate-btn, .sidebar-toggle, .loading-overlay { display: none !important; } .map-container { position: absolute; inset: 0; } #map { height: 100vh !important; } .header { position: static; } }';
+  document.head.appendChild(printStyle);
 
   // ── Boot ────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
