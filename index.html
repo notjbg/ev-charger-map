@@ -1382,6 +1382,19 @@ body {
       'WORKPLACE': 'Workplace'
     };
 
+    // Distance from user or map center
+    let distanceHtml = '';
+    if (userLocation) {
+      const dist = haversineDistance(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
+      distanceHtml = `<div style="font-size:12px;color:var(--cyan);font-weight:600;margin-bottom:4px;">📏 ${dist.toFixed(1)} miles from you</div>`;
+    } else {
+      const center = map.getCenter();
+      const dist = haversineDistance(center.lat, center.lng, s.latitude, s.longitude);
+      if (dist < 500) {
+        distanceHtml = `<div style="font-size:12px;color:var(--text-dim);margin-bottom:4px;">📏 ~${dist.toFixed(0)} mi from map center</div>`;
+      }
+    }
+
     const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
 
     return `
@@ -1406,6 +1419,7 @@ body {
           <span class="popup-item-value">${facilityLabels[s.facility_type] || s.facility_type || '—'}</span>
         </div>
       </div>
+      ${distanceHtml}
       ${s.ev_pricing ? `<div class="popup-pricing">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
       ${s.expected_date && s.status_code === 'P' ? `<div class="popup-hours" style="color:var(--purple)">📅 Expected: ${escHtml(s.expected_date)}</div>` : ''}
       ${s.access_days_time ? `<div class="popup-hours">🕐 ${escHtml(s.access_days_time)}</div>` : ''}
@@ -1477,13 +1491,20 @@ body {
       if (s.funding_sources?.includes('NEVI')) tags.push('<span class="tag tag-nevi">NEVI</span>');
       if (s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER') tags.push('<span class="tag tag-truck">🚛</span>');
 
+      let distText = '';
+      if (userLocation) {
+        const dist = haversineDistance(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
+        distText = `<span style="font-size:11px;color:var(--cyan);margin-left:auto;white-space:nowrap;">${dist.toFixed(0)} mi</span>`;
+      }
+
       const selected = s.id === selectedStationId ? ' selected' : '';
 
       return `
         <div class="station-card${selected}" data-id="${s.id}">
-          <div class="station-name">
+          <div class="station-name" style="display:flex;align-items:center;">
             <span style="color:${getPowerColor(s._maxPower)};font-size:10px;">●</span>
-            ${escHtml(s.station_name || 'Unknown Station')}
+            <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${escHtml(s.station_name || 'Unknown Station')}</span>
+            ${distText}
           </div>
           <div class="station-address">${escHtml(s.city || '')}, ${s.state || ''} ${s.zip || ''}</div>
           <div class="station-tags">${tags.join('')}</div>
@@ -1793,6 +1814,7 @@ body {
     navigator.geolocation.getCurrentPosition(
       pos => {
         const { latitude, longitude } = pos.coords;
+        userLocation = { lat: latitude, lng: longitude };
         map.setView([latitude, longitude], 10);
         if (userMarker) map.removeLayer(userMarker);
         userMarker = L.circleMarker([latitude, longitude], {
@@ -1806,6 +1828,16 @@ body {
   }
 
   // ── Utils ───────────────────────────────────────────────────────────
+  function haversineDistance(lat1, lon1, lat2, lon2) {
+    const R = 3959; // miles
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180) * Math.cos(lat2*Math.PI/180) * Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  let userLocation = null;
+
   function escHtml(str) {
     if (!str) return '';
     const div = document.createElement('div');
