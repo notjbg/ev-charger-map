@@ -823,6 +823,10 @@ body {
           <div class="chip" data-filter="network" data-value="EVCS">EVCS</div>
           <div class="chip" data-filter="network" data-value="SHELL_RECHARGE">Shell</div>
           <div class="chip" data-filter="network" data-value="BP_PULSE">bp pulse</div>
+          <div class="chip" data-filter="network" data-value="IONNA">IONNA</div>
+          <div class="chip" data-filter="network" data-value="FORD_CHARGE">Ford</div>
+          <div class="chip" data-filter="network" data-value="MERCEDES_BENZ">MB HPC</div>
+          <div class="chip" data-filter="network" data-value="FLASH">FLASH</div>
         </div>
       </div>
 
@@ -836,6 +840,25 @@ body {
           <div class="chip" data-filter="facility" data-value="FLEET_GARAGE">Fleet Garage</div>
           <div class="chip" data-filter="facility" data-value="GAS_STATION">Gas Station</div>
           <div class="chip" data-filter="facility" data-value="STANDALONE_STATION">Standalone</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Quick State</div>
+        <div class="filter-chips" id="stateChips" style="max-height:60px;overflow-y:auto;">
+          <div class="chip active" data-filter="state" data-value="all">All US</div>
+          <div class="chip" data-filter="state" data-value="CA">CA</div>
+          <div class="chip" data-filter="state" data-value="TX">TX</div>
+          <div class="chip" data-filter="state" data-value="FL">FL</div>
+          <div class="chip" data-filter="state" data-value="NY">NY</div>
+          <div class="chip" data-filter="state" data-value="IL">IL</div>
+          <div class="chip" data-filter="state" data-value="GA">GA</div>
+          <div class="chip" data-filter="state" data-value="OH">OH</div>
+          <div class="chip" data-filter="state" data-value="PA">PA</div>
+          <div class="chip" data-filter="state" data-value="WA">WA</div>
+          <div class="chip" data-filter="state" data-value="AZ">AZ</div>
+          <div class="chip" data-filter="state" data-value="CO">CO</div>
+          <div class="chip" data-filter="state" data-value="NJ">NJ</div>
         </div>
       </div>
 
@@ -950,6 +973,7 @@ body {
     facility: 'all',
     funding: 'all',
     status: 'E',
+    state: 'all',
     search: ''
   };
 
@@ -1195,6 +1219,11 @@ body {
       // Status
       if (filters.status !== 'all') {
         if (s.status_code !== filters.status) return false;
+      }
+
+      // State
+      if (filters.state !== 'all') {
+        if (s.state !== filters.state) return false;
       }
 
       // Vehicle class
@@ -1548,6 +1577,18 @@ body {
 
         filters[filterType] = value;
         applyFilters();
+
+        // Auto-zoom to state
+        if (filterType === 'state' && value !== 'all') {
+          const stateCenters = {
+            CA:[36.78,-119.42], TX:[31.97,-99.90], FL:[27.66,-81.52], NY:[42.17,-74.95],
+            IL:[40.63,-89.40], GA:[32.16,-82.90], OH:[40.42,-82.91], PA:[41.20,-77.19],
+            WA:[47.75,-120.74], AZ:[34.05,-111.09], CO:[39.55,-105.78], NJ:[40.06,-74.41]
+          };
+          if (stateCenters[value]) map.setView(stateCenters[value], 7);
+        } else if (filterType === 'state' && value === 'all') {
+          map.setView(US_CENTER, US_ZOOM);
+        }
       });
     });
 
@@ -1608,6 +1649,7 @@ body {
       filters.facility = 'all';
       filters.funding = 'all';
       filters.status = 'E';
+      filters.state = 'all';
       filters.search = '';
 
       document.querySelectorAll('.chip').forEach(c => {
