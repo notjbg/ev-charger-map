@@ -924,6 +924,8 @@ body {
   // ── Config ──────────────────────────────────────────────────────────
   const API_BASE = 'https://developer.nrel.gov/api/alt-fuel-stations/v1';
   const API_KEY = 'DEMO_KEY'; // Replace with your key from developer.nrel.gov
+  const CACHE_KEY = 'chargefleet_cache';
+  const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
   const US_CENTER = [39.8283, -98.5795];
   const US_ZOOM = 5;
 
@@ -983,6 +985,25 @@ body {
   async function loadData() {
     const loadingEl = document.getElementById('loadingOverlay');
     const progressEl = document.getElementById('loadingProgress');
+
+    // Try localStorage cache first
+    try {
+      const cached = localStorage.getItem(CACHE_KEY);
+      if (cached) {
+        const { data, ts } = JSON.parse(cached);
+        if (Date.now() - ts < CACHE_TTL && data.length > 0) {
+          console.log(`Using cached data: ${data.length} stations (${((Date.now() - ts)/60000).toFixed(0)}m old)`);
+          progressEl.textContent = `Loading ${data.length} cached stations...`;
+          allStations = data;
+          updateHeaderStats();
+          applyFilters();
+          loadingEl.classList.add('hidden');
+          // Refresh in background
+          setTimeout(() => refreshDataSilently(), 2000);
+          return;
+        }
+      }
+    } catch(e) { /* cache miss or corrupt */ }
 
     try {
       // Fetch available + planned in parallel batches
@@ -1056,6 +1077,11 @@ body {
       allStations = Array.from(stationMap.values());
       console.log(`Loaded ${allStations.length} unique stations`);
 
+      // Cache to localStorage
+      try {
+        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() }));
+      } catch(e) { console.warn('Cache write failed:', e); }
+
       updateHeaderStats();
       applyFilters();
       loadingEl.classList.add('hidden');
@@ -1094,6 +1120,52 @@ body {
   }
 
   function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+  async function refreshDataSilently() {
+    try {
+      const oldCount = allStations.length;
+      // Re-run loadData logic silently
+      const statusFilter = 'E,P';
+      const stationMap = new Map();
+      const processStations = (stations, source) => {
+        for (const s of stations) {
+          if (!stationMap.has(s.id)) {
+            s._sources = [source];
+            s._maxPower = getMaxPower(s);
+            stationMap.set(s.id, s);
+          } else {
+            stationMap.get(s.id)._sources.push(source);
+          }
+        }
+      };
+
+      const mdhdData = await fetchStations({ maximum_vehicle_class: 'MD', ev_charging_level: 'dc_fast', status: statusFilter, access: 'public', country: 'US' });
+      await delay(500);
+      const truckData = await fetchStations({ ev_charging_level: 'dc_fast', facility_type: 'TRUCK_STOP,TRAVEL_CENTER,REST_STOP,FLEET_GARAGE', status: statusFilter, access: 'public', country: 'US' });
+      await delay(500);
+      const neviData = await fetchStations({ ev_charging_level: 'dc_fast', funding_sources: 'NEVI,CFI', status: statusFilter, access: 'public', country: 'US' });
+      await delay(500);
+      const highPowerData = await fetchStations({ ev_charging_level: 'dc_fast', ev_power_kw_min: 350, status: statusFilter, access: 'public', country: 'US' });
+
+      processStations(mdhdData, 'mdhd');
+      processStations(truckData, 'truck');
+      processStations(neviData, 'nevi');
+      processStations(highPowerData, 'highpower');
+
+      const newStations = Array.from(stationMap.values());
+      if (newStations.length > 0) {
+        allStations = newStations;
+        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() })); } catch(e) {}
+        updateHeaderStats();
+        applyFilters();
+        if (newStations.length !== oldCount) {
+          console.log(`Background refresh: ${oldCount} → ${newStations.length} stations`);
+        }
+      }
+    } catch(e) {
+      console.log('Background refresh failed (rate limited?) — using cached data');
+    }
+  }
 
   function getMaxPower(station) {
     let maxPower = 0;
