@@ -1030,7 +1030,7 @@ body {
   const API_BASE = 'https://developer.nrel.gov/api/alt-fuel-stations/v1';
   const API_KEY = 'DEMO_KEY'; // Replace with your key from developer.nrel.gov
   const CACHE_KEY = 'chargefleet_cache';
-  const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+  const CACHE_TTL = 24 * 60 * 60 * 1000; // 24 hours
   const US_CENTER = [39.8283, -98.5795];
   const US_ZOOM = 5;
 
@@ -1209,6 +1209,24 @@ body {
 
     } catch (err) {
       console.error('Failed to load data:', err);
+      // Fall back to stale cache if available
+      try {
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+          const { data, ts } = JSON.parse(cached);
+          if (data && data.length > 0) {
+            console.log(`Using stale cache: ${data.length} stations from ${new Date(ts).toLocaleString()}`);
+            allStations = data;
+            updateHeaderStats();
+            applyFilters();
+            loadingEl.classList.add('hidden');
+            const age = Math.round((Date.now() - ts) / 3600000);
+            const luEl = document.getElementById('lastUpdated');
+            if (luEl) luEl.textContent = `Cached (${age}h ago)`;
+            return;
+          }
+        }
+      } catch(e) { /* no usable cache */ }
       document.querySelector('.spinner').style.display = 'none';
       document.querySelector('.loading-text').style.display = 'none';
       const errorBanner = document.getElementById('errorBanner');
