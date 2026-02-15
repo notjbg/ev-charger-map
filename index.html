@@ -723,6 +723,23 @@ body {
 
 .locate-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
 
+.welcome-card {
+  position: absolute;
+  bottom: 70px;
+  left: 16px;
+  z-index: 800;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  box-shadow: var(--shadow);
+  max-width: 380px;
+}
+
+@media (max-width: 768px) {
+  .welcome-card { display: none; }
+}
+
 /* Station count in sidebar header */
 .sidebar-header {
   padding: 10px 16px;
@@ -943,6 +960,21 @@ body {
     </div>
 
     <button class="locate-btn" id="geolocateBtn">📍 Near Me</button>
+
+    <div class="welcome-card" id="welcomeCard">
+      <div style="display:flex;justify-content:space-between;align-items:start;">
+        <div style="font-size:15px;font-weight:700;color:var(--text-bright);margin-bottom:8px;">⚡ Commercial EV Charging Infrastructure</div>
+        <button onclick="this.parentElement.parentElement.style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;">✕</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">
+        This map shows <strong style="color:var(--text);">public DC fast charging stations</strong> relevant to
+        medium and heavy-duty electric vehicles across the US. Data includes MD/HD tagged stations,
+        truck stops, NEVI/CFI funded corridor chargers, and all 350kW+ stations.
+        <br><br>
+        <strong style="color:var(--amber);">Use filters</strong> to narrow by vehicle class, connector type, power level, or network.
+        <strong style="color:var(--green);">Export CSV</strong> for fleet planning.
+      </div>
+    </div>
   </div>
 </div>
 
