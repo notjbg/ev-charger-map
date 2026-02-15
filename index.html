@@ -931,6 +931,9 @@ body {
       <div class="spinner"></div>
       <div class="loading-text">Loading commercial charging stations...</div>
       <div class="loading-progress" id="loadingProgress"></div>
+      <div class="progress-bar-container" style="width:200px;height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;">
+        <div class="progress-bar-fill" id="progressBar" style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s ease;"></div>
+      </div>
     </div>
 
     <div class="map-info">
@@ -1077,8 +1080,11 @@ body {
       // Fetch available + planned in parallel batches
       const statusFilter = 'E,P'; // Both available and planned
 
+      const progressBar = document.getElementById('progressBar');
+
       // Query 1: All stations tagged MD or HD vehicle class
       progressEl.textContent = 'Fetching MD/HD tagged stations...';
+      progressBar.style.width = '10%';
       const mdhdData = await fetchStations({
         maximum_vehicle_class: 'MD',
         ev_charging_level: 'dc_fast',
@@ -1089,6 +1095,7 @@ body {
 
       // Query 2: High-power stations at truck-friendly facilities
       await delay(300);
+      progressBar.style.width = '30%';
       progressEl.textContent = 'Fetching truck stop & travel center stations...';
       const truckData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -1100,6 +1107,7 @@ body {
 
       // Query 3: NEVI-funded stations (these are the federal highway corridor chargers)
       await delay(300);
+      progressBar.style.width = '55%';
       progressEl.textContent = 'Fetching NEVI/CFI funded stations...';
       const neviData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -1111,6 +1119,7 @@ body {
 
       // Query 4: Very high power stations (350kW+) anywhere — these can serve commercial
       await delay(300);
+      progressBar.style.width = '75%';
       progressEl.textContent = 'Fetching 350kW+ stations...';
       const highPowerData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -1120,6 +1129,7 @@ body {
         country: 'US'
       });
 
+      progressBar.style.width = '90%';
       progressEl.textContent = 'Processing station data...';
 
       // Merge and deduplicate by station ID
