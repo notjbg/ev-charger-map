@@ -1401,6 +1401,12 @@ body {
     const listEl = document.getElementById('stationList');
     const countEl = document.getElementById('filteredCount');
 
+    const hdCount = filteredStations.filter(s => s.maximum_vehicle_class === 'HD').length;
+    const mdCount = filteredStations.filter(s => s.maximum_vehicle_class === 'MD').length;
+    const plannedCount = filteredStations.filter(s => s.status_code === 'P').length;
+    const neviCount = filteredStations.filter(s => s.funding_sources?.includes('NEVI')).length;
+    const mcsCount = filteredStations.filter(s => s.ev_connector_types?.includes('J3271')).length;
+
     countEl.textContent = `${filteredStations.length} of ${allStations.length}`;
 
     if (filteredStations.length === 0) {
@@ -1413,6 +1419,15 @@ body {
       `;
       return;
     }
+
+    // Summary bar
+    let summaryHtml = '<div style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;border-bottom:1px solid var(--border);margin-bottom:4px;">';
+    if (hdCount > 0) summaryHtml += `<span class="tag tag-hd">${hdCount} HD</span>`;
+    if (mdCount > 0) summaryHtml += `<span class="tag tag-md">${mdCount} MD</span>`;
+    if (neviCount > 0) summaryHtml += `<span class="tag tag-nevi">${neviCount} NEVI</span>`;
+    if (mcsCount > 0) summaryHtml += `<span class="tag tag-mcs">${mcsCount} MCS</span>`;
+    if (plannedCount > 0) summaryHtml += `<span class="tag" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">${plannedCount} Planned</span>`;
+    summaryHtml += '</div>';
 
     // Sort by distance from map center if zoomed in, otherwise by state then name
     const center = map.getCenter();
@@ -1434,7 +1449,7 @@ body {
     // Virtual scrolling: render only first 100
     const visible = sorted.slice(0, 100);
 
-    listEl.innerHTML = visible.map(s => {
+    listEl.innerHTML = summaryHtml + visible.map(s => {
       const tags = [];
       if (s.maximum_vehicle_class === 'HD') tags.push('<span class="tag tag-hd">HD</span>');
       else if (s.maximum_vehicle_class === 'MD') tags.push('<span class="tag tag-md">MD</span>');
