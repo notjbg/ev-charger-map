@@ -949,7 +949,7 @@ body {
       Data: <a href="https://afdc.energy.gov" target="_blank" style="color:var(--accent);text-decoration:none;">AFDC/DOE</a> •
       <a href="https://github.com/notjbg/ev-charger-map" target="_blank" style="color:var(--accent);text-decoration:none;">Open Source</a><br>
       Press <kbd style="background:var(--bg-card);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:10px;">/</kbd> to search •
-      <span id="lastUpdated"></span>
+      <span id="lastUpdatedFooter"></span>
     </div>
   </div>
 
@@ -1201,8 +1201,11 @@ body {
       updateHeaderStats();
       applyFilters();
       loadingEl.classList.add('hidden');
+      const ts = new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
       const luEl = document.getElementById('lastUpdated');
-      if (luEl) luEl.textContent = 'Updated ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+      if (luEl) luEl.textContent = ts;
+      const luFooter = document.getElementById('lastUpdatedFooter');
+      if (luFooter) luFooter.textContent = 'Updated ' + ts;
 
     } catch (err) {
       console.error('Failed to load data:', err);
@@ -1513,8 +1516,8 @@ body {
       ${s.ev_pricing ? `<div class="popup-pricing">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
       ${s.expected_date && s.status_code === 'P' ? `<div class="popup-hours" style="color:var(--purple)">📅 Expected: ${escHtml(s.expected_date)}</div>` : ''}
       ${s.access_days_time ? `<div class="popup-hours">🕐 ${escHtml(s.access_days_time)}</div>` : ''}
-      ${s.station_phone ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">📞 <a href="tel:${s.station_phone.split(' ')[0]}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
-      ${s.date_last_confirmed ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Last confirmed: ${s.date_last_confirmed}</div>` : ''}
+      ${s.station_phone ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">📞 <a href="tel:${encodeURIComponent(s.station_phone.split(' ')[0])}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
+      ${s.date_last_confirmed ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Last confirmed: ${escHtml(s.date_last_confirmed)}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
         <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener" style="flex:1;">📍 Get Directions →</a>
         <button class="fav-btn" data-fav="${s.id}" onclick="event.stopPropagation()" style="background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--amber);cursor:pointer;font-size:16px;padding:4px 10px;">${favorites.includes(String(s.id)) ? '★ Saved' : '☆ Save'}</button>
@@ -1800,10 +1803,18 @@ body {
       filters.status = 'E';
       filters.state = 'all';
       filters.search = '';
+      filters.favoritesOnly = false;
 
       document.querySelectorAll('.chip').forEach(c => {
-        c.classList.toggle('active', c.dataset.value === 'all');
+        // Status defaults to 'E', everything else to 'all'
+        const isDefault = c.dataset.filter === 'status' ? c.dataset.value === 'E' : c.dataset.value === 'all';
+        c.classList.toggle('active', isDefault);
       });
+      // Reset favorites toggle UI
+      const favBtn = document.getElementById('favToggle');
+      favBtn.style.background = '';
+      favBtn.style.borderColor = '';
+      document.getElementById('favToggleLabel').innerHTML = `Show Favorites (<span id="favCount">${favorites.length}</span>)`;
       powerSlider.value = 150;
       powerValue.textContent = '150+ kW';
       searchInput.value = '';
