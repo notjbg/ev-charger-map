@@ -1329,7 +1329,7 @@ body {
     markerMap = {};
 
     if (viewMode === 'heat') {
-      const heatPoints = filteredStations.map(s => {
+      const heatPoints = filteredStations.filter(s => s.latitude && s.longitude).map(s => {
         const intensity = s._maxPower > 0 ? Math.min(s._maxPower / 500, 1) : 0.3;
         return [s.latitude, s.longitude, intensity];
       });
@@ -1340,7 +1340,7 @@ body {
       return;
     }
 
-    const markers = filteredStations.map(s => {
+    const markers = filteredStations.filter(s => s.latitude && s.longitude).map(s => {
       const color = getPowerColor(s._maxPower);
       const size = getMarkerSize(s);
       const borderColor = getVehicleClassBorder(s);
