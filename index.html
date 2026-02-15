@@ -324,7 +324,7 @@ body {
   transition: all 0.2s;
 }
 
-.station-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+.station-card:hover { border-color: var(--accent); background: var(--bg-hover); transform: translateX(2px); }
 .station-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 
 .station-name {
@@ -738,6 +738,28 @@ body {
 
 @media (max-width: 768px) {
   .welcome-card { display: none; }
+  .drawer-handle { display: block !important; }
+  .locate-btn { bottom: 12px; left: 8px; padding: 8px 10px; font-size: 12px; }
+  .leaflet-popup-content-wrapper { max-width: 280px !important; }
+  .leaflet-popup-content { max-width: 260px !important; font-size: 13px !important; }
+  .popup-grid { grid-template-columns: 1fr !important; }
+}
+
+.drawer-handle {
+  display: none;
+  padding: 8px 0 4px;
+  text-align: center;
+  cursor: grab;
+  touch-action: none;
+}
+
+.drawer-handle-bar {
+  width: 36px;
+  height: 4px;
+  background: var(--text-dim);
+  border-radius: 2px;
+  margin: 0 auto;
+  opacity: 0.6;
 }
 
 /* Station count in sidebar header */
@@ -794,6 +816,7 @@ body {
 
 <div class="app">
   <div class="sidebar" id="sidebar" role="complementary" aria-label="Station filters and list">
+    <div class="drawer-handle" id="drawerHandle"><div class="drawer-handle-bar"></div></div>
     <div class="search-container">
       <div class="search-box">
         <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." aria-label="Search stations by location" autocomplete="off" />
@@ -901,7 +924,13 @@ body {
         </div>
       </div>
 
-      <div style="display:flex;gap:8px;margin-top:4px;">
+      <div style="margin-top:4px;">
+        <button class="btn btn-secondary" id="favToggle" style="width:100%;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:6px;">
+          <span style="color:var(--amber);">★</span> <span id="favToggleLabel">Show Favorites (<span id="favCount">0</span>)</span>
+        </button>
+      </div>
+
+      <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary" id="resetFilters" style="flex:1">Reset Filters</button>
         <button class="btn btn-secondary" id="exportBtn" style="flex:1" title="Export filtered stations as CSV">📥 Export CSV</button>
         <button class="btn btn-secondary" id="shareBtn" title="Copy shareable link">🔗</button>
@@ -915,10 +944,12 @@ body {
 
     <div class="station-list" id="stationList"></div>
 
-    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0;">
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0;line-height:1.8;">
+      Built by <a href="https://jonahberg.com" target="_blank" style="color:var(--text);text-decoration:none;font-weight:500;">Jonah Berg</a> •
       Data: <a href="https://afdc.energy.gov" target="_blank" style="color:var(--accent);text-decoration:none;">AFDC/DOE</a> •
-      <a href="https://github.com/notjbg/ev-charger-map" target="_blank" style="color:var(--accent);text-decoration:none;">Source</a> •
-      Press <kbd style="background:var(--bg-card);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:10px;">/</kbd> to search
+      <a href="https://github.com/notjbg/ev-charger-map" target="_blank" style="color:var(--accent);text-decoration:none;">Open Source</a><br>
+      Press <kbd style="background:var(--bg-card);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:10px;">/</kbd> to search •
+      <span id="lastUpdated"></span>
     </div>
   </div>
 
@@ -933,6 +964,11 @@ body {
       <div class="loading-progress" id="loadingProgress"></div>
       <div class="progress-bar-container" style="width:200px;height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;">
         <div class="progress-bar-fill" id="progressBar" style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s ease;"></div>
+      </div>
+      <div id="errorBanner" style="display:none;margin-top:16px;padding:16px;background:rgba(239,68,68,0.1);border:1px solid var(--red);border-radius:var(--radius);text-align:center;max-width:360px;">
+        <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px;">Failed to load station data</div>
+        <div id="errorMessage" style="font-size:12px;color:var(--text-dim);margin-bottom:12px;"></div>
+        <button class="btn btn-primary" id="retryBtn">Retry Now</button>
       </div>
     </div>
 
@@ -1005,6 +1041,7 @@ body {
   let selectedStationId = null;
   let markerMap = {};
   let viewMode = 'markers'; // 'markers' | 'heat'
+  let favorites = JSON.parse(localStorage.getItem('chargefleet_favs') || '[]');
 
   const filters = {
     vehicleClass: 'all',
@@ -1015,7 +1052,8 @@ body {
     funding: 'all',
     status: 'E',
     state: 'all',
-    search: ''
+    search: '',
+    favoritesOnly: false
   };
 
   // ── Init ────────────────────────────────────────────────────────────
@@ -1063,7 +1101,7 @@ body {
       if (cached) {
         const { data, ts } = JSON.parse(cached);
         if (Date.now() - ts < CACHE_TTL && data.length > 0) {
-          console.log(`Using cached data: ${data.length} stations (${((Date.now() - ts)/60000).toFixed(0)}m old)`);
+          // console.log(`Using cached data: ${data.length} stations (${((Date.now() - ts)/60000).toFixed(0)}m old)`);
           progressEl.textContent = `Loading ${data.length} cached stations...`;
           allStations = data;
           updateHeaderStats();
@@ -1153,7 +1191,7 @@ body {
       processStations(highPowerData, 'highpower');
 
       allStations = Array.from(stationMap.values());
-      console.log(`Loaded ${allStations.length} unique stations`);
+      // console.log(`Loaded ${allStations.length} unique stations`);
 
       // Cache to localStorage
       try {
@@ -1163,12 +1201,19 @@ body {
       updateHeaderStats();
       applyFilters();
       loadingEl.classList.add('hidden');
+      const luEl = document.getElementById('lastUpdated');
+      if (luEl) luEl.textContent = 'Updated ' + new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
     } catch (err) {
       console.error('Failed to load data:', err);
-      progressEl.textContent = 'Error loading data. Retrying...';
-      showToast('Failed to load station data. Check your connection and refresh.');
-      setTimeout(loadData, 5000);
+      document.querySelector('.spinner').style.display = 'none';
+      document.querySelector('.loading-text').style.display = 'none';
+      const errorBanner = document.getElementById('errorBanner');
+      const errorMsg = document.getElementById('errorMessage');
+      errorBanner.style.display = 'block';
+      errorMsg.textContent = navigator.onLine
+        ? `Error: ${err.message}. Cached data may be available after retry.`
+        : 'You appear to be offline. Connect to the internet and retry.';
     }
   }
 
@@ -1237,11 +1282,11 @@ body {
         updateHeaderStats();
         applyFilters();
         if (newStations.length !== oldCount) {
-          console.log(`Background refresh: ${oldCount} → ${newStations.length} stations`);
+          // console.log(`Background refresh: ${oldCount} → ${newStations.length} stations`);
         }
       }
     } catch(e) {
-      console.log('Background refresh failed (rate limited?) — using cached data');
+      // console.log('Background refresh failed (rate limited?) — using cached data');
     }
   }
 
@@ -1302,6 +1347,9 @@ body {
       if (filters.funding !== 'all') {
         if (!s.funding_sources || !s.funding_sources.includes(filters.funding)) return false;
       }
+
+      // Favorites
+      if (filters.favoritesOnly && !favorites.includes(String(s.id))) return false;
 
       // Search
       if (filters.search) {
@@ -1467,7 +1515,10 @@ body {
       ${s.access_days_time ? `<div class="popup-hours">🕐 ${escHtml(s.access_days_time)}</div>` : ''}
       ${s.station_phone ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">📞 <a href="tel:${s.station_phone.split(' ')[0]}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
       ${s.date_last_confirmed ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Last confirmed: ${s.date_last_confirmed}</div>` : ''}
-      <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener">📍 Get Directions →</a>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
+        <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener" style="flex:1;">📍 Get Directions →</a>
+        <button class="fav-btn" data-fav="${s.id}" onclick="event.stopPropagation()" style="background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--amber);cursor:pointer;font-size:16px;padding:4px 10px;">${favorites.includes(String(s.id)) ? '★ Saved' : '☆ Save'}</button>
+      </div>
     `;
   }
 
@@ -1547,6 +1598,7 @@ body {
             <span style="color:${getPowerColor(s._maxPower)};font-size:10px;">●</span>
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${escHtml(s.station_name || 'Unknown Station')}</span>
             ${distText}
+            <button class="fav-btn" data-fav="${s.id}" onclick="event.stopPropagation()" style="background:none;border:none;color:var(--amber);cursor:pointer;font-size:14px;padding:0 2px;flex-shrink:0;">${favorites.includes(String(s.id)) ? '★' : '☆'}</button>
           </div>
           <div class="station-address">${escHtml(s.city || '')}, ${s.state || ''} ${s.zip || ''}</div>
           <div class="station-tags">${tags.join('')}</div>
@@ -1826,6 +1878,59 @@ body {
       }
     });
 
+    // Retry button
+    document.getElementById('retryBtn').addEventListener('click', () => {
+      document.getElementById('errorBanner').style.display = 'none';
+      document.querySelector('.spinner').style.display = 'block';
+      document.querySelector('.loading-text').style.display = 'block';
+      loadData();
+    });
+
+    // Favorites toggle
+    document.getElementById('favToggle').addEventListener('click', () => {
+      filters.favoritesOnly = !filters.favoritesOnly;
+      const btn = document.getElementById('favToggle');
+      btn.style.background = filters.favoritesOnly ? 'rgba(245,158,11,0.15)' : '';
+      btn.style.borderColor = filters.favoritesOnly ? 'var(--amber)' : '';
+      document.getElementById('favToggleLabel').innerHTML = filters.favoritesOnly
+        ? 'Showing Favorites Only'
+        : `Show Favorites (<span id="favCount">${favorites.length}</span>)`;
+      applyFilters();
+    });
+    document.getElementById('favCount').textContent = favorites.length;
+
+    // Favorites delegation
+    document.addEventListener('click', e => {
+      const btn = e.target.closest('.fav-btn');
+      if (btn) { toggleFavorite(btn.dataset.fav); e.stopPropagation(); }
+    });
+
+    // Mobile drawer swipe
+    if (window.innerWidth <= 768) {
+      const handle = document.getElementById('drawerHandle');
+      const sidebar = document.getElementById('sidebar');
+      let startY, startH;
+      handle.addEventListener('touchstart', e => {
+        startY = e.touches[0].clientY;
+        startH = sidebar.offsetHeight;
+        sidebar.style.transition = 'none';
+      });
+      handle.addEventListener('touchmove', e => {
+        const dy = startY - e.touches[0].clientY;
+        const newH = Math.max(60, Math.min(window.innerHeight * 0.85, startH + dy));
+        sidebar.style.height = newH + 'px';
+        e.preventDefault();
+      }, { passive: false });
+      handle.addEventListener('touchend', () => {
+        sidebar.style.transition = 'height 0.3s ease';
+        const h = sidebar.offsetHeight, vh = window.innerHeight;
+        if (h < vh * 0.15) { sidebar.classList.add('collapsed'); sidebar.style.height = ''; }
+        else if (h < vh * 0.5) { sidebar.style.height = '30vh'; sidebar.classList.remove('collapsed'); }
+        else { sidebar.style.height = '70vh'; sidebar.classList.remove('collapsed'); }
+        setTimeout(() => map.invalidateSize(), 350);
+      });
+    }
+
     // Update list when map moves
     map.on('moveend', () => {
       if (map.getZoom() > 7) updateStationList();
@@ -1864,7 +1969,10 @@ body {
           color: 'white', weight: 3
         }).addTo(map).bindPopup('Your Location');
       },
-      err => showToast('Unable to get your location.'),
+      err => {
+        const msgs = { 1: 'Location access denied. Enable it in your browser settings.', 2: 'Position unavailable.', 3: 'Location request timed out.' };
+        showToast(msgs[err.code] || 'Unable to get your location.');
+      },
       { enableHighAccuracy: true }
     );
   }
@@ -1885,6 +1993,20 @@ body {
     const div = document.createElement('div');
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function toggleFavorite(id) {
+    id = String(id);
+    const idx = favorites.indexOf(id);
+    if (idx === -1) favorites.push(id);
+    else favorites.splice(idx, 1);
+    localStorage.setItem('chargefleet_favs', JSON.stringify(favorites));
+    // Update star icons in DOM
+    document.querySelectorAll(`.fav-btn[data-fav="${id}"]`).forEach(btn => {
+      btn.textContent = favorites.includes(id) ? '★' : '☆';
+    });
+    // Re-filter if favorites-only is active
+    if (filters.favoritesOnly) { applyFilters(); }
   }
 
   function showToast(msg) {
@@ -1984,6 +2106,14 @@ body {
   const printStyle = document.createElement('style');
   printStyle.textContent = '@media print { .sidebar, .legend, .map-info, .locate-btn, .sidebar-toggle, .loading-overlay { display: none !important; } .map-container { position: absolute; inset: 0; } #map { height: 100vh !important; } .header { position: static; } }';
   document.head.appendChild(printStyle);
+
+  // ── Connectivity ─────────────────────────────────────────────────────
+  window.addEventListener('online', () => {
+    if (allStations.length === 0) {
+      showToast('Back online — loading data...');
+      loadData();
+    }
+  });
 
   // ── Boot ────────────────────────────────────────────────────────────
   document.addEventListener('DOMContentLoaded', init);
