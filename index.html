@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -775,7 +775,7 @@ body {
 </head>
 <body>
 
-<div class="header">
+<div class="header" role="banner">
   <div class="header-left">
     <div class="logo">⚡ <span>Charge</span>Fleet</div>
     <span class="badge badge-live">LIVE DATA</span>
@@ -793,7 +793,7 @@ body {
 </div>
 
 <div class="app">
-  <div class="sidebar" id="sidebar">
+  <div class="sidebar" id="sidebar" role="complementary" aria-label="Station filters and list">
     <div class="search-container">
       <div class="search-box">
         <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." aria-label="Search stations by location" autocomplete="off" />
@@ -924,7 +924,7 @@ body {
 
   <button class="sidebar-toggle" id="sidebarToggle">◀</button>
 
-  <div class="map-container">
+  <div class="map-container" role="main" aria-label="Interactive map">
     <div id="map"></div>
 
     <div class="loading-overlay" id="loadingOverlay">
