@@ -977,6 +977,7 @@ body {
       });
 
       // Query 2: High-power stations at truck-friendly facilities
+      await delay(300);
       progressEl.textContent = 'Fetching truck stop & travel center stations...';
       const truckData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -987,6 +988,7 @@ body {
       });
 
       // Query 3: NEVI-funded stations (these are the federal highway corridor chargers)
+      await delay(300);
       progressEl.textContent = 'Fetching NEVI/CFI funded stations...';
       const neviData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -997,6 +999,7 @@ body {
       });
 
       // Query 4: Very high power stations (350kW+) anywhere — these can serve commercial
+      await delay(300);
       progressEl.textContent = 'Fetching 350kW+ stations...';
       const highPowerData = await fetchStations({
         ev_charging_level: 'dc_fast',
@@ -1043,7 +1046,7 @@ body {
     }
   }
 
-  async function fetchStations(params) {
+  async function fetchStations(params, retries = 3) {
     const queryParams = new URLSearchParams({
       api_key: API_KEY,
       fuel_type: 'ELEC',
@@ -1052,11 +1055,23 @@ body {
     });
 
     const url = `${API_BASE}.json?${queryParams}`;
-    const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
-    const data = await resp.json();
-    return data.fuel_stations || [];
+
+    for (let i = 0; i < retries; i++) {
+      const resp = await fetch(url);
+      if (resp.status === 429) {
+        const wait = Math.pow(2, i + 1) * 1000 + Math.random() * 1000;
+        console.warn(`Rate limited, retrying in ${Math.round(wait)}ms...`);
+        await new Promise(r => setTimeout(r, wait));
+        continue;
+      }
+      if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+      const data = await resp.json();
+      return data.fuel_stations || [];
+    }
+    throw new Error('Rate limited after retries');
   }
+
+  function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
 
   function getMaxPower(station) {
     let maxPower = 0;
