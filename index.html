@@ -775,7 +775,7 @@ body {
   <div class="sidebar" id="sidebar">
     <div class="search-container">
       <div class="search-box">
-        <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." />
+        <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." aria-label="Search stations by location" autocomplete="off" />
         <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
         <button class="btn-icon" id="locateBtn" title="My Location">📍</button>
       </div>
@@ -870,6 +870,12 @@ body {
     </div>
 
     <div class="station-list" id="stationList"></div>
+
+    <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0;">
+      Data: <a href="https://afdc.energy.gov" target="_blank" style="color:var(--accent);text-decoration:none;">AFDC/DOE</a> •
+      <a href="https://github.com/notjbg/ev-charger-map" target="_blank" style="color:var(--accent);text-decoration:none;">Source</a> •
+      Press <kbd style="background:var(--bg-card);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:10px;">/</kbd> to search
+    </div>
   </div>
 
   <button class="sidebar-toggle" id="sidebarToggle">◀</button>
@@ -1353,7 +1359,10 @@ body {
         </div>
       </div>
       ${s.ev_pricing ? `<div class="popup-pricing">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
+      ${s.expected_date && s.status_code === 'P' ? `<div class="popup-hours" style="color:var(--purple)">📅 Expected: ${escHtml(s.expected_date)}</div>` : ''}
       ${s.access_days_time ? `<div class="popup-hours">🕐 ${escHtml(s.access_days_time)}</div>` : ''}
+      ${s.station_phone ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">📞 <a href="tel:${s.station_phone.split(' ')[0]}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
+      ${s.date_last_confirmed ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Last confirmed: ${s.date_last_confirmed}</div>` : ''}
       <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener">📍 Get Directions →</a>
     `;
   }
