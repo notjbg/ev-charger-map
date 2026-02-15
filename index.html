@@ -5,6 +5,14 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Commercial EV Charger Map — Medium & Heavy-Duty</title>
 <meta name="description" content="Interactive map of public DC fast charging stations for medium and heavy-duty electric vehicles across the United States. Powered by AFDC data.">
+<meta property="og:title" content="ChargeFleet — Commercial EV Charger Map">
+<meta property="og:description" content="Find DC fast charging stations for medium and heavy-duty electric vehicles. Filter by power level, connector type, vehicle class, and network.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://notjbg.github.io/ev-charger-map/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="ChargeFleet — Commercial EV Charger Map">
+<meta name="twitter:description" content="Interactive map of 2,700+ commercial EV charging stations for MD/HD fleets.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -832,6 +840,15 @@ body {
       </div>
 
       <div class="filter-section">
+        <div class="filter-label">Status</div>
+        <div class="filter-chips" id="statusChips">
+          <div class="chip active" data-filter="status" data-value="E">Available</div>
+          <div class="chip" data-filter="status" data-value="all">All (incl. Planned)</div>
+          <div class="chip" data-filter="status" data-value="P">Planned Only</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
         <div class="filter-label">Funding</div>
         <div class="filter-chips" id="fundingChips">
           <div class="chip active" data-filter="funding" data-value="all">All</div>
@@ -888,6 +905,7 @@ body {
         <div class="legend-title">Vehicle Class</div>
         <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f97316"></div> HD (Class 7-8)</div>
         <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f59e0b"></div> MD (Class 3-6)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;opacity:0.5;outline:2px dashed rgba(255,255,255,0.4);outline-offset:1px"></div> Planned</div>
       </div>
     </div>
 
@@ -923,6 +941,7 @@ body {
     network: 'all',
     facility: 'all',
     funding: 'all',
+    status: 'E',
     search: ''
   };
 
@@ -966,12 +985,15 @@ body {
     const progressEl = document.getElementById('loadingProgress');
 
     try {
+      // Fetch available + planned in parallel batches
+      const statusFilter = 'E,P'; // Both available and planned
+
       // Query 1: All stations tagged MD or HD vehicle class
       progressEl.textContent = 'Fetching MD/HD tagged stations...';
       const mdhdData = await fetchStations({
         maximum_vehicle_class: 'MD',
         ev_charging_level: 'dc_fast',
-        status: 'E',
+        status: statusFilter,
         access: 'public',
         country: 'US'
       });
@@ -982,7 +1004,7 @@ body {
       const truckData = await fetchStations({
         ev_charging_level: 'dc_fast',
         facility_type: 'TRUCK_STOP,TRAVEL_CENTER,REST_STOP,FLEET_GARAGE',
-        status: 'E',
+        status: statusFilter,
         access: 'public',
         country: 'US'
       });
@@ -993,7 +1015,7 @@ body {
       const neviData = await fetchStations({
         ev_charging_level: 'dc_fast',
         funding_sources: 'NEVI,CFI',
-        status: 'E',
+        status: statusFilter,
         access: 'public',
         country: 'US'
       });
@@ -1004,7 +1026,7 @@ body {
       const highPowerData = await fetchStations({
         ev_charging_level: 'dc_fast',
         ev_power_kw_min: 350,
-        status: 'E',
+        status: statusFilter,
         access: 'public',
         country: 'US'
       });
@@ -1092,6 +1114,11 @@ body {
   // ── Filtering ───────────────────────────────────────────────────────
   function applyFilters() {
     filteredStations = allStations.filter(s => {
+      // Status
+      if (filters.status !== 'all') {
+        if (s.status_code !== filters.status) return false;
+      }
+
       // Vehicle class
       if (filters.vehicleClass !== 'all') {
         if (filters.vehicleClass === 'HD' && s.maximum_vehicle_class !== 'HD') return false;
@@ -1150,9 +1177,13 @@ body {
       const size = getMarkerSize(s);
       const borderColor = getVehicleClassBorder(s);
 
+      const isPlanned = s.status_code === 'P';
+      const opacity = isPlanned ? '0.5' : '1';
+      const outline = isPlanned ? 'outline:2px dashed rgba(255,255,255,0.4);outline-offset:2px;' : '';
+
       const icon = L.divIcon({
         className: 'custom-marker',
-        html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${borderColor ? '3px solid ' + borderColor : '2px solid rgba(255,255,255,0.3)'};"></div>`,
+        html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${borderColor ? '3px solid ' + borderColor : '2px solid rgba(255,255,255,0.3)'};opacity:${opacity};${outline}"></div>`,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2]
       });
@@ -1199,6 +1230,7 @@ body {
     });
 
     const tags = [];
+    if (s.status_code === 'P') tags.push('<span class="tag" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">PLANNED</span>');
     if (s.maximum_vehicle_class === 'HD') tags.push('<span class="tag tag-hd">HD Class 7-8</span>');
     if (s.maximum_vehicle_class === 'MD') tags.push('<span class="tag tag-md">MD Class 3-6</span>');
     if (s._maxPower >= 1000) tags.push('<span class="tag tag-mcs">MW-Class</span>');
@@ -1494,6 +1526,7 @@ body {
       filters.network = 'all';
       filters.facility = 'all';
       filters.funding = 'all';
+      filters.status = 'E';
       filters.search = '';
 
       document.querySelectorAll('.chip').forEach(c => {
