@@ -1218,7 +1218,7 @@ body {
       <div class="popup-grid">
         <div class="popup-item">
           <span class="popup-item-label">Network</span>
-          <span class="popup-item-value">${escHtml(s.ev_network || 'Unknown')}</span>
+          <span class="popup-item-value">${escHtml(networkDisplay(s.ev_network) || 'Unknown')}</span>
         </div>
         <div class="popup-item">
           <span class="popup-item-label">Max Power</span>
@@ -1318,6 +1318,38 @@ body {
     });
   }
 
+  const NETWORK_NAMES = {
+    'Electrify America': 'Electrify America',
+    'ChargePoint Network': 'ChargePoint',
+    'eVgo Network': 'EVgo',
+    'Blink Network': 'Blink',
+    'Non-Networked': 'Non-Networked',
+    'Tesla': 'Tesla Supercharger',
+    'Tesla Destination': 'Tesla Destination',
+    'SHELL_RECHARGE': 'Shell Recharge',
+    'BP_PULSE': 'bp pulse',
+    'WATT_EV': 'WattEV',
+    'EVCS': 'EVCS',
+    'EV Connect': 'EV Connect',
+    'EVGATEWAY': 'EvGateway',
+    'ELECTRIC_ERA': 'Electric Era',
+    'IONNA': 'IONNA',
+    'FORD_CHARGE': 'Ford Charge',
+    'MERCEDES_BENZ': 'Mercedes-Benz HPC',
+    'FLASH': 'FLASH',
+    'GRAVITY_CHARGING_CENTER': 'Gravity',
+    'POWERFLEX': 'PowerFlex',
+    'POWERCHARGE': 'PowerCharge',
+    'FLO': 'FLO',
+    'CIRCLE_K': 'Circle K',
+    'RIVIAN_ADVENTURE': 'Rivian Adventure',
+    'WALMART': 'Walmart'
+  };
+
+  function networkDisplay(network) {
+    return NETWORK_NAMES[network] || network;
+  }
+
   function networkShort(network) {
     const shorts = {
       'Electrify America': 'EA',
@@ -1328,9 +1360,10 @@ body {
       'Tesla': 'Tesla SC',
       'Tesla Destination': 'Tesla Dest',
       'SHELL_RECHARGE': 'Shell',
-      'BP_PULSE': 'bp pulse'
+      'BP_PULSE': 'bp pulse',
+      'WATT_EV': 'WattEV'
     };
-    return shorts[network] || network;
+    return shorts[network] || NETWORK_NAMES[network] || network;
   }
 
   function selectStation(id) {
@@ -1493,6 +1526,17 @@ body {
       }).catch(() => {
         showToast('Copy this URL to share: ' + window.location.href);
       });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', e => {
+      if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        document.getElementById('searchInput').focus();
+      }
+      if (e.key === 'Escape') {
+        document.getElementById('searchInput').blur();
+      }
     });
 
     // Update list when map moves
