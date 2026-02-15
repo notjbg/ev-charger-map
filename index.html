@@ -1,0 +1,1635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Commercial EV Charger Map — Medium & Heavy-Duty</title>
+<meta name="description" content="Interactive map of public DC fast charging stations for medium and heavy-duty electric vehicles across the United States. Powered by AFDC data.">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<style>
+:root {
+  --bg: #0a0e17;
+  --bg-panel: #111827;
+  --bg-card: #1a2332;
+  --bg-hover: #1e2d3d;
+  --border: #2a3a4a;
+  --text: #e2e8f0;
+  --text-dim: #8899aa;
+  --text-bright: #f8fafc;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --cyan: #06b6d4;
+  --orange: #f97316;
+  --pink: #ec4899;
+  --radius: 8px;
+  --shadow: 0 4px 24px rgba(0,0,0,0.4);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border);
+  z-index: 1000;
+  position: relative;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: -0.5px;
+}
+
+.logo span { color: var(--accent); }
+
+.badge {
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-live { background: rgba(16,185,129,0.15); color: var(--green); }
+
+.header-stats {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.header-stats strong {
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Layout */
+.app {
+  display: flex;
+  height: calc(100vh - 56px);
+}
+
+/* Sidebar */
+.sidebar {
+  width: 360px;
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: width 0.3s ease, opacity 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 0;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.sidebar-toggle {
+  position: absolute;
+  left: 360px;
+  top: 70px;
+  z-index: 1001;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 28px;
+  height: 40px;
+  border-radius: 0 var(--radius) var(--radius) 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: left 0.3s ease;
+}
+
+.sidebar.collapsed ~ .sidebar-toggle { left: 0; }
+
+/* Search */
+.search-container {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+.search-box {
+  display: flex;
+  gap: 8px;
+}
+
+.search-input {
+  flex: 1;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus { border-color: var(--accent); }
+.search-input::placeholder { color: var(--text-dim); }
+
+.btn {
+  padding: 10px 16px;
+  border-radius: var(--radius);
+  border: none;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: var(--bg-card);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { background: var(--bg-hover); }
+
+.btn-icon {
+  padding: 10px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.btn-icon:hover { background: var(--bg-hover); }
+
+/* Filters */
+.filters {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  overflow-y: auto;
+  max-height: 45vh;
+}
+
+.filter-section {
+  margin-bottom: 14px;
+}
+
+.filter-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+  white-space: nowrap;
+}
+
+.chip:hover { border-color: var(--accent); color: var(--text); }
+
+.chip.active {
+  background: rgba(59,130,246,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.chip .count {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* Power range slider */
+.power-range {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.power-range input[type="range"] {
+  flex: 1;
+  -webkit-appearance: none;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+
+.power-range input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg-panel);
+}
+
+.power-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+  min-width: 60px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Station list */
+.station-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.station-list::-webkit-scrollbar { width: 6px; }
+.station-list::-webkit-scrollbar-track { background: transparent; }
+.station-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.station-card {
+  padding: 12px 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.station-card:hover { border-color: var(--accent); background: var(--bg-hover); }
+.station-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+
+.station-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.station-address {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.station-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.tag {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.tag-power { background: rgba(59,130,246,0.15); color: var(--accent); }
+.tag-network { background: rgba(139,92,246,0.15); color: var(--purple); }
+.tag-connector { background: rgba(6,182,212,0.15); color: var(--cyan); }
+.tag-hd { background: rgba(249,115,22,0.15); color: var(--orange); }
+.tag-md { background: rgba(245,158,11,0.15); color: var(--amber); }
+.tag-nevi { background: rgba(16,185,129,0.15); color: var(--green); }
+.tag-truck { background: rgba(236,72,153,0.15); color: var(--pink); }
+.tag-mcs { background: rgba(239,68,68,0.15); color: var(--red); }
+
+/* Map */
+.map-container {
+  flex: 1;
+  position: relative;
+}
+
+#map {
+  width: 100%;
+  height: 100%;
+  background: var(--bg);
+}
+
+/* Dark map tiles */
+.leaflet-tile-pane { filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(1.1) saturate(0.3); }
+
+/* Map popup */
+.leaflet-popup-content-wrapper {
+  background: var(--bg-card) !important;
+  color: var(--text) !important;
+  border-radius: var(--radius) !important;
+  border: 1px solid var(--border) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+.leaflet-popup-tip { background: var(--bg-card) !important; }
+
+.leaflet-popup-content {
+  margin: 14px 16px !important;
+  font-size: 13px !important;
+  line-height: 1.5 !important;
+  min-width: 260px !important;
+}
+
+.popup-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 4px;
+}
+
+.popup-address {
+  color: var(--text-dim);
+  font-size: 12px;
+  margin-bottom: 10px;
+}
+
+.popup-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.popup-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.popup-item-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.popup-item-value {
+  font-size: 13px;
+  color: var(--text-bright);
+  font-weight: 500;
+}
+
+.popup-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.popup-hours {
+  font-size: 12px;
+  color: var(--text-dim);
+  border-top: 1px solid var(--border);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+.popup-pricing {
+  font-size: 12px;
+  color: var(--green);
+  font-weight: 500;
+}
+
+.popup-directions {
+  display: inline-block;
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.popup-directions:hover { text-decoration: underline; }
+
+/* Loading overlay */
+.loading-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(10,14,23,0.85);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  transition: opacity 0.3s ease;
+}
+
+.loading-overlay.hidden { opacity: 0; pointer-events: none; }
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.loading-text {
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+.loading-progress {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Legend */
+.legend {
+  position: absolute;
+  bottom: 24px;
+  right: 16px;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  z-index: 800;
+  font-size: 12px;
+  box-shadow: var(--shadow);
+  min-width: 160px;
+}
+
+.legend-title {
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: var(--text);
+}
+
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,0.2);
+}
+
+/* Info panel on map */
+.map-info {
+  position: absolute;
+  top: 12px;
+  right: 16px;
+  z-index: 800;
+  display: flex;
+  gap: 8px;
+}
+
+.info-card {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 8px 14px;
+  box-shadow: var(--shadow);
+  text-align: center;
+}
+
+.info-card-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.info-card-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+/* Cluster styles */
+.marker-cluster-small, .marker-cluster-medium, .marker-cluster-large {
+  background: rgba(59,130,246,0.3) !important;
+}
+
+.marker-cluster-small div, .marker-cluster-medium div, .marker-cluster-large div {
+  background: var(--accent) !important;
+  color: white !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+}
+
+/* Empty state */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+}
+
+.empty-state-icon { font-size: 48px; margin-bottom: 16px; }
+.empty-state-title { font-size: 16px; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+.empty-state-text { font-size: 13px; color: var(--text-dim); }
+
+/* Error toast */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(100px);
+  background: var(--bg-card);
+  border: 1px solid var(--red);
+  border-radius: var(--radius);
+  padding: 12px 20px;
+  color: var(--text);
+  font-size: 13px;
+  z-index: 9999;
+  box-shadow: var(--shadow);
+  transition: transform 0.3s ease;
+  max-width: 90vw;
+}
+
+.toast.show { transform: translateX(-50%) translateY(0); }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    z-index: 1000;
+    width: 100%;
+    height: 50vh;
+    bottom: 0;
+    top: auto;
+    border-right: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+  }
+
+  .sidebar.collapsed { height: 0; }
+
+  .sidebar-toggle {
+    left: 50%;
+    transform: translateX(-50%);
+    top: auto;
+    bottom: calc(50vh + 4px);
+    border-radius: var(--radius) var(--radius) 0 0;
+    width: 48px;
+    height: 28px;
+  }
+
+  .sidebar.collapsed ~ .sidebar-toggle {
+    left: 50%;
+    bottom: 4px;
+  }
+
+  .header-stats { display: none; }
+
+  .map-info { top: 8px; right: 8px; }
+  .info-card { padding: 6px 10px; }
+  .info-card-value { font-size: 14px; }
+
+  .legend { bottom: 8px; right: 8px; }
+
+  .filters { max-height: 30vh; }
+}
+
+/* Leaflet overrides */
+.leaflet-control-zoom a {
+  background: var(--bg-panel) !important;
+  color: var(--text) !important;
+  border-color: var(--border) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: var(--bg-hover) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(10,14,23,0.8) !important;
+  color: var(--text-dim) !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a { color: var(--text-dim) !important; }
+
+/* Custom marker styles */
+.custom-marker {
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.3);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  transition: transform 0.2s;
+}
+
+.custom-marker:hover { transform: scale(1.3); }
+
+/* Geolocation button */
+.locate-btn {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  z-index: 800;
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  box-shadow: var(--shadow);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.locate-btn:hover { background: var(--bg-hover); border-color: var(--accent); }
+
+/* Station count in sidebar header */
+.sidebar-header {
+  padding: 10px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.sidebar-header-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.sidebar-header-count {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.sort-select {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">⚡ <span>Charge</span>Fleet</div>
+    <span class="badge badge-live">LIVE DATA</span>
+  </div>
+  <div class="header-stats">
+    <span>Stations: <strong id="totalStations">—</strong></span>
+    <span>Ports: <strong id="totalPorts">—</strong></span>
+    <span>Networks: <strong id="totalNetworks">—</strong></span>
+    <span>Last Updated: <strong id="lastUpdated">—</strong></span>
+  </div>
+</div>
+
+<div class="app">
+  <div class="sidebar" id="sidebar">
+    <div class="search-container">
+      <div class="search-box">
+        <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." />
+        <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
+        <button class="btn-icon" id="locateBtn" title="My Location">📍</button>
+      </div>
+    </div>
+
+    <div class="filters" id="filtersPanel">
+      <div class="filter-section">
+        <div class="filter-label">Vehicle Class</div>
+        <div class="filter-chips" id="vehicleClassChips">
+          <div class="chip active" data-filter="vehicleClass" data-value="all">All Commercial</div>
+          <div class="chip" data-filter="vehicleClass" data-value="HD">HD (Class 7-8)</div>
+          <div class="chip" data-filter="vehicleClass" data-value="MD">MD (Class 3-6)</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Connector Type</div>
+        <div class="filter-chips" id="connectorChips">
+          <div class="chip active" data-filter="connector" data-value="all">All</div>
+          <div class="chip" data-filter="connector" data-value="TESLA">NACS</div>
+          <div class="chip" data-filter="connector" data-value="J1772COMBO">CCS</div>
+          <div class="chip" data-filter="connector" data-value="CHADEMO">CHAdeMO</div>
+          <div class="chip" data-filter="connector" data-value="J3271">MCS</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Minimum Power</div>
+        <div class="power-range">
+          <input type="range" id="powerSlider" min="50" max="1000" step="50" value="150">
+          <span class="power-value" id="powerValue">150+ kW</span>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Network</div>
+        <div class="filter-chips" id="networkChips">
+          <div class="chip active" data-filter="network" data-value="all">All</div>
+          <div class="chip" data-filter="network" data-value="Tesla">Tesla</div>
+          <div class="chip" data-filter="network" data-value="Electrify America">EA</div>
+          <div class="chip" data-filter="network" data-value="ChargePoint Network">ChargePoint</div>
+          <div class="chip" data-filter="network" data-value="WATT_EV">WattEV</div>
+          <div class="chip" data-filter="network" data-value="eVgo Network">EVgo</div>
+          <div class="chip" data-filter="network" data-value="Blink Network">Blink</div>
+          <div class="chip" data-filter="network" data-value="EVCS">EVCS</div>
+          <div class="chip" data-filter="network" data-value="SHELL_RECHARGE">Shell</div>
+          <div class="chip" data-filter="network" data-value="BP_PULSE">bp pulse</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Facility Type</div>
+        <div class="filter-chips" id="facilityChips">
+          <div class="chip active" data-filter="facility" data-value="all">All</div>
+          <div class="chip" data-filter="facility" data-value="TRUCK_STOP">Truck Stop</div>
+          <div class="chip" data-filter="facility" data-value="TRAVEL_CENTER">Travel Center</div>
+          <div class="chip" data-filter="facility" data-value="REST_STOP">Rest Stop</div>
+          <div class="chip" data-filter="facility" data-value="FLEET_GARAGE">Fleet Garage</div>
+          <div class="chip" data-filter="facility" data-value="GAS_STATION">Gas Station</div>
+          <div class="chip" data-filter="facility" data-value="STANDALONE_STATION">Standalone</div>
+        </div>
+      </div>
+
+      <div class="filter-section">
+        <div class="filter-label">Funding</div>
+        <div class="filter-chips" id="fundingChips">
+          <div class="chip active" data-filter="funding" data-value="all">All</div>
+          <div class="chip" data-filter="funding" data-value="NEVI">NEVI</div>
+          <div class="chip" data-filter="funding" data-value="CFI">CFI</div>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <button class="btn btn-secondary" id="resetFilters" style="flex:1">Reset Filters</button>
+        <button class="btn btn-secondary" id="exportBtn" style="flex:1" title="Export filtered stations as CSV">📥 Export CSV</button>
+        <button class="btn btn-secondary" id="shareBtn" title="Copy shareable link">🔗</button>
+      </div>
+    </div>
+
+    <div class="sidebar-header">
+      <span class="sidebar-header-title">Stations</span>
+      <span class="sidebar-header-count" id="filteredCount">Loading...</span>
+    </div>
+
+    <div class="station-list" id="stationList"></div>
+  </div>
+
+  <button class="sidebar-toggle" id="sidebarToggle">◀</button>
+
+  <div class="map-container">
+    <div id="map"></div>
+
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div class="loading-text">Loading commercial charging stations...</div>
+      <div class="loading-progress" id="loadingProgress"></div>
+    </div>
+
+    <div class="map-info">
+      <div class="info-card">
+        <div class="info-card-value" id="mapStations">—</div>
+        <div class="info-card-label">Visible</div>
+      </div>
+      <div class="info-card">
+        <div class="info-card-value" id="mapPorts">—</div>
+        <div class="info-card-label">DC Ports</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      <div class="legend-title">Power Level</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> 1 MW+ (MCS)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> 350+ kW</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 150–349 kW</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> 50–149 kW</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> Unknown</div>
+      <div style="margin-top:8px">
+        <div class="legend-title">Vehicle Class</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f97316"></div> HD (Class 7-8)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f59e0b"></div> MD (Class 3-6)</div>
+      </div>
+    </div>
+
+    <button class="locate-btn" id="geolocateBtn">📍 Near Me</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<script>
+(function() {
+  'use strict';
+
+  // ── Config ──────────────────────────────────────────────────────────
+  const API_BASE = 'https://developer.nrel.gov/api/alt-fuel-stations/v1';
+  const API_KEY = 'DEMO_KEY'; // Replace with your key from developer.nrel.gov
+  const US_CENTER = [39.8283, -98.5795];
+  const US_ZOOM = 5;
+
+  // ── State ───────────────────────────────────────────────────────────
+  let allStations = [];
+  let filteredStations = [];
+  let map, markerCluster, userMarker;
+  let selectedStationId = null;
+  let markerMap = {};
+
+  const filters = {
+    vehicleClass: 'all',
+    connector: 'all',
+    minPower: 150,
+    network: 'all',
+    facility: 'all',
+    funding: 'all',
+    search: ''
+  };
+
+  // ── Init ────────────────────────────────────────────────────────────
+  function init() {
+    initMap();
+    initEventListeners();
+    loadStateFromHash();
+    loadData();
+  }
+
+  function initMap() {
+    map = L.map('map', {
+      center: US_CENTER,
+      zoom: US_ZOOM,
+      zoomControl: true,
+      attributionControl: true
+    });
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap | Data: AFDC/DOE',
+      maxZoom: 18
+    }).addTo(map);
+
+    markerCluster = L.markerClusterGroup({
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      disableClusteringAtZoom: 14,
+      chunkedLoading: true,
+      chunkInterval: 100,
+      chunkDelay: 10
+    });
+
+    map.addLayer(markerCluster);
+  }
+
+  // ── Data Loading ────────────────────────────────────────────────────
+  async function loadData() {
+    const loadingEl = document.getElementById('loadingOverlay');
+    const progressEl = document.getElementById('loadingProgress');
+
+    try {
+      // Query 1: All stations tagged MD or HD vehicle class
+      progressEl.textContent = 'Fetching MD/HD tagged stations...';
+      const mdhdData = await fetchStations({
+        maximum_vehicle_class: 'MD',
+        ev_charging_level: 'dc_fast',
+        status: 'E',
+        access: 'public',
+        country: 'US'
+      });
+
+      // Query 2: High-power stations at truck-friendly facilities
+      progressEl.textContent = 'Fetching truck stop & travel center stations...';
+      const truckData = await fetchStations({
+        ev_charging_level: 'dc_fast',
+        facility_type: 'TRUCK_STOP,TRAVEL_CENTER,REST_STOP,FLEET_GARAGE',
+        status: 'E',
+        access: 'public',
+        country: 'US'
+      });
+
+      // Query 3: NEVI-funded stations (these are the federal highway corridor chargers)
+      progressEl.textContent = 'Fetching NEVI/CFI funded stations...';
+      const neviData = await fetchStations({
+        ev_charging_level: 'dc_fast',
+        funding_sources: 'NEVI,CFI',
+        status: 'E',
+        access: 'public',
+        country: 'US'
+      });
+
+      // Query 4: Very high power stations (350kW+) anywhere — these can serve commercial
+      progressEl.textContent = 'Fetching 350kW+ stations...';
+      const highPowerData = await fetchStations({
+        ev_charging_level: 'dc_fast',
+        ev_power_kw_min: 350,
+        status: 'E',
+        access: 'public',
+        country: 'US'
+      });
+
+      progressEl.textContent = 'Processing station data...';
+
+      // Merge and deduplicate by station ID
+      const stationMap = new Map();
+
+      const processStations = (stations, source) => {
+        for (const s of stations) {
+          if (!stationMap.has(s.id)) {
+            s._sources = [source];
+            s._maxPower = getMaxPower(s);
+            stationMap.set(s.id, s);
+          } else {
+            stationMap.get(s.id)._sources.push(source);
+          }
+        }
+      };
+
+      processStations(mdhdData, 'mdhd');
+      processStations(truckData, 'truck');
+      processStations(neviData, 'nevi');
+      processStations(highPowerData, 'highpower');
+
+      allStations = Array.from(stationMap.values());
+      console.log(`Loaded ${allStations.length} unique stations`);
+
+      updateHeaderStats();
+      applyFilters();
+      loadingEl.classList.add('hidden');
+
+    } catch (err) {
+      console.error('Failed to load data:', err);
+      progressEl.textContent = 'Error loading data. Retrying...';
+      showToast('Failed to load station data. Check your connection and refresh.');
+      setTimeout(loadData, 5000);
+    }
+  }
+
+  async function fetchStations(params) {
+    const queryParams = new URLSearchParams({
+      api_key: API_KEY,
+      fuel_type: 'ELEC',
+      limit: 'all',
+      ...params
+    });
+
+    const url = `${API_BASE}.json?${queryParams}`;
+    const resp = await fetch(url);
+    if (!resp.ok) throw new Error(`API error: ${resp.status}`);
+    const data = await resp.json();
+    return data.fuel_stations || [];
+  }
+
+  function getMaxPower(station) {
+    let maxPower = 0;
+    if (station.ev_charging_units) {
+      for (const unit of station.ev_charging_units) {
+        if (unit.connectors) {
+          for (const [type, info] of Object.entries(unit.connectors)) {
+            if (info.power_kw && info.power_kw > maxPower) {
+              maxPower = info.power_kw;
+            }
+          }
+        }
+      }
+    }
+    return maxPower;
+  }
+
+  // ── Filtering ───────────────────────────────────────────────────────
+  function applyFilters() {
+    filteredStations = allStations.filter(s => {
+      // Vehicle class
+      if (filters.vehicleClass !== 'all') {
+        if (filters.vehicleClass === 'HD' && s.maximum_vehicle_class !== 'HD') return false;
+        if (filters.vehicleClass === 'MD' && s.maximum_vehicle_class !== 'MD' && s.maximum_vehicle_class !== 'HD') return false;
+      }
+
+      // Connector
+      if (filters.connector !== 'all') {
+        if (!s.ev_connector_types || !s.ev_connector_types.includes(filters.connector)) return false;
+      }
+
+      // Min power
+      if (filters.minPower > 0 && s._maxPower > 0 && s._maxPower < filters.minPower) return false;
+
+      // Network
+      if (filters.network !== 'all') {
+        if (s.ev_network !== filters.network) return false;
+      }
+
+      // Facility
+      if (filters.facility !== 'all') {
+        if (s.facility_type !== filters.facility) return false;
+      }
+
+      // Funding
+      if (filters.funding !== 'all') {
+        if (!s.funding_sources || !s.funding_sources.includes(filters.funding)) return false;
+      }
+
+      // Search
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        const searchFields = [
+          s.station_name, s.city, s.state, s.zip,
+          s.street_address, s.ev_network
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!searchFields.includes(q)) return false;
+      }
+
+      return true;
+    });
+
+    updateMarkers();
+    updateStationList();
+    updateMapInfo();
+    scheduleHashUpdate();
+  }
+
+  // ── Markers ─────────────────────────────────────────────────────────
+  function updateMarkers() {
+    markerCluster.clearLayers();
+    markerMap = {};
+
+    const markers = filteredStations.map(s => {
+      const color = getPowerColor(s._maxPower);
+      const size = getMarkerSize(s);
+      const borderColor = getVehicleClassBorder(s);
+
+      const icon = L.divIcon({
+        className: 'custom-marker',
+        html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${borderColor ? '3px solid ' + borderColor : '2px solid rgba(255,255,255,0.3)'};"></div>`,
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2]
+      });
+
+      const marker = L.marker([s.latitude, s.longitude], { icon });
+      marker.bindPopup(() => createPopupContent(s), { maxWidth: 320 });
+      marker.on('click', () => selectStation(s.id));
+      markerMap[s.id] = marker;
+      return marker;
+    });
+
+    markerCluster.addLayers(markers);
+  }
+
+  function getPowerColor(power) {
+    if (power >= 1000) return '#ef4444'; // MCS-class
+    if (power >= 350) return '#f97316';  // Ultra-fast
+    if (power >= 150) return '#f59e0b';  // Fast
+    if (power > 0) return '#3b82f6';     // Standard DCFC
+    return '#8b5cf6';                     // Unknown
+  }
+
+  function getVehicleClassBorder(station) {
+    if (station.maximum_vehicle_class === 'HD') return '#f97316';
+    if (station.maximum_vehicle_class === 'MD') return '#f59e0b';
+    return null;
+  }
+
+  function getMarkerSize(station) {
+    if (station._maxPower >= 1000) return 16;
+    if (station._maxPower >= 350) return 14;
+    if (station.maximum_vehicle_class === 'HD') return 14;
+    return 12;
+  }
+
+  // ── Popup ───────────────────────────────────────────────────────────
+  function createPopupContent(s) {
+    const connectors = (s.ev_connector_types || []).map(c => {
+      const labels = {
+        'TESLA': 'NACS', 'J1772COMBO': 'CCS', 'CHADEMO': 'CHAdeMO',
+        'J1772': 'J1772', 'J3271': 'MCS', 'NEMA1450': 'NEMA 14-50'
+      };
+      return labels[c] || c;
+    });
+
+    const tags = [];
+    if (s.maximum_vehicle_class === 'HD') tags.push('<span class="tag tag-hd">HD Class 7-8</span>');
+    if (s.maximum_vehicle_class === 'MD') tags.push('<span class="tag tag-md">MD Class 3-6</span>');
+    if (s._maxPower >= 1000) tags.push('<span class="tag tag-mcs">MW-Class</span>');
+    if (s.funding_sources) {
+      s.funding_sources.forEach(f => {
+        if (f === 'NEVI') tags.push('<span class="tag tag-nevi">NEVI</span>');
+        if (f === 'CFI') tags.push('<span class="tag tag-nevi">CFI</span>');
+      });
+    }
+    if (s.facility_type === 'TRUCK_STOP') tags.push('<span class="tag tag-truck">Truck Stop</span>');
+    if (s.facility_type === 'TRAVEL_CENTER') tags.push('<span class="tag tag-truck">Travel Center</span>');
+
+    connectors.forEach(c => {
+      tags.push(`<span class="tag tag-connector">${c}</span>`);
+    });
+
+    const facilityLabels = {
+      'TRUCK_STOP': 'Truck Stop', 'TRAVEL_CENTER': 'Travel Center', 'REST_STOP': 'Rest Stop',
+      'FLEET_GARAGE': 'Fleet Garage', 'GAS_STATION': 'Gas Station', 'STANDALONE_STATION': 'Standalone',
+      'CONVENIENCE_STORE': 'Convenience Store', 'PARKING_LOT': 'Parking Lot', 'PARKING_GARAGE': 'Parking Garage',
+      'SHOPPING_CENTER': 'Shopping Center', 'HOTEL': 'Hotel', 'RESTAURANT': 'Restaurant', 'OTHER': 'Other',
+      'CAR_DEALER': 'Car Dealer', 'GROCERY': 'Grocery', 'RETAIL': 'Retail', 'OFFICE_BLDG': 'Office',
+      'WORKPLACE': 'Workplace'
+    };
+
+    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+
+    return `
+      <div class="popup-title">${escHtml(s.station_name)}</div>
+      <div class="popup-address">${escHtml(s.street_address)}, ${escHtml(s.city)}, ${s.state} ${s.zip}</div>
+      <div class="popup-tags">${tags.join('')}</div>
+      <div class="popup-grid">
+        <div class="popup-item">
+          <span class="popup-item-label">Network</span>
+          <span class="popup-item-value">${escHtml(s.ev_network || 'Unknown')}</span>
+        </div>
+        <div class="popup-item">
+          <span class="popup-item-label">Max Power</span>
+          <span class="popup-item-value">${s._maxPower > 0 ? s._maxPower + ' kW' : 'Unknown'}</span>
+        </div>
+        <div class="popup-item">
+          <span class="popup-item-label">DC Fast Ports</span>
+          <span class="popup-item-value">${s.ev_dc_fast_num || '—'}</span>
+        </div>
+        <div class="popup-item">
+          <span class="popup-item-label">Facility</span>
+          <span class="popup-item-value">${facilityLabels[s.facility_type] || s.facility_type || '—'}</span>
+        </div>
+      </div>
+      ${s.ev_pricing ? `<div class="popup-pricing">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
+      ${s.access_days_time ? `<div class="popup-hours">🕐 ${escHtml(s.access_days_time)}</div>` : ''}
+      <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener">📍 Get Directions →</a>
+    `;
+  }
+
+  // ── Station List ────────────────────────────────────────────────────
+  function updateStationList() {
+    const listEl = document.getElementById('stationList');
+    const countEl = document.getElementById('filteredCount');
+
+    countEl.textContent = `${filteredStations.length} of ${allStations.length}`;
+
+    if (filteredStations.length === 0) {
+      listEl.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔌</div>
+          <div class="empty-state-title">No stations match</div>
+          <div class="empty-state-text">Try adjusting your filters or search area.</div>
+        </div>
+      `;
+      return;
+    }
+
+    // Sort by distance from map center if zoomed in, otherwise by state then name
+    const center = map.getCenter();
+    const sorted = [...filteredStations];
+
+    if (map.getZoom() > 7) {
+      sorted.sort((a, b) => {
+        const distA = Math.pow(a.latitude - center.lat, 2) + Math.pow(a.longitude - center.lng, 2);
+        const distB = Math.pow(b.latitude - center.lat, 2) + Math.pow(b.longitude - center.lng, 2);
+        return distA - distB;
+      });
+    } else {
+      sorted.sort((a, b) => {
+        if (a.state !== b.state) return (a.state || '').localeCompare(b.state || '');
+        return (a.station_name || '').localeCompare(b.station_name || '');
+      });
+    }
+
+    // Virtual scrolling: render only first 100
+    const visible = sorted.slice(0, 100);
+
+    listEl.innerHTML = visible.map(s => {
+      const tags = [];
+      if (s.maximum_vehicle_class === 'HD') tags.push('<span class="tag tag-hd">HD</span>');
+      else if (s.maximum_vehicle_class === 'MD') tags.push('<span class="tag tag-md">MD</span>');
+      if (s._maxPower > 0) tags.push(`<span class="tag tag-power">${s._maxPower >= 1000 ? (s._maxPower/1000).toFixed(1)+'MW' : s._maxPower+'kW'}</span>`);
+      if (s.ev_network) tags.push(`<span class="tag tag-network">${escHtml(networkShort(s.ev_network))}</span>`);
+      if (s.funding_sources?.includes('NEVI')) tags.push('<span class="tag tag-nevi">NEVI</span>');
+      if (s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER') tags.push('<span class="tag tag-truck">🚛</span>');
+
+      const selected = s.id === selectedStationId ? ' selected' : '';
+
+      return `
+        <div class="station-card${selected}" data-id="${s.id}">
+          <div class="station-name">
+            <span style="color:${getPowerColor(s._maxPower)};font-size:10px;">●</span>
+            ${escHtml(s.station_name || 'Unknown Station')}
+          </div>
+          <div class="station-address">${escHtml(s.city || '')}, ${s.state || ''} ${s.zip || ''}</div>
+          <div class="station-tags">${tags.join('')}</div>
+        </div>
+      `;
+    }).join('');
+
+    if (sorted.length > 100) {
+      listEl.innerHTML += `<div style="padding:12px;text-align:center;color:var(--text-dim);font-size:12px;">Showing 100 of ${sorted.length} — zoom in or search to narrow</div>`;
+    }
+
+    // Card click handlers
+    listEl.querySelectorAll('.station-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const id = parseInt(card.dataset.id);
+        selectStation(id);
+        const station = allStations.find(s => s.id === id);
+        if (station) {
+          map.setView([station.latitude, station.longitude], 14);
+          if (markerMap[id]) markerMap[id].openPopup();
+        }
+      });
+    });
+  }
+
+  function networkShort(network) {
+    const shorts = {
+      'Electrify America': 'EA',
+      'ChargePoint Network': 'ChargePoint',
+      'eVgo Network': 'EVgo',
+      'Blink Network': 'Blink',
+      'Non-Networked': 'Non-Net',
+      'Tesla': 'Tesla SC',
+      'Tesla Destination': 'Tesla Dest',
+      'SHELL_RECHARGE': 'Shell',
+      'BP_PULSE': 'bp pulse'
+    };
+    return shorts[network] || network;
+  }
+
+  function selectStation(id) {
+    selectedStationId = id;
+    document.querySelectorAll('.station-card').forEach(c => {
+      c.classList.toggle('selected', parseInt(c.dataset.id) === id);
+    });
+  }
+
+  // ── UI Updates ──────────────────────────────────────────────────────
+  function updateHeaderStats() {
+    document.getElementById('totalStations').textContent = allStations.length.toLocaleString();
+
+    let totalPorts = 0;
+    const networks = new Set();
+    allStations.forEach(s => {
+      totalPorts += (s.ev_dc_fast_num || 0);
+      if (s.ev_network) networks.add(s.ev_network);
+    });
+
+    document.getElementById('totalPorts').textContent = totalPorts.toLocaleString();
+    document.getElementById('totalNetworks').textContent = networks.size;
+
+    // Fetch last updated date
+    fetch(`${API_BASE}/last-updated.json?api_key=${API_KEY}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.last_updated) {
+          const date = new Date(d.last_updated);
+          document.getElementById('lastUpdated').textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        }
+      })
+      .catch(() => {});
+  }
+
+  function updateMapInfo() {
+    document.getElementById('mapStations').textContent = filteredStations.length.toLocaleString();
+    let ports = 0;
+    filteredStations.forEach(s => ports += (s.ev_dc_fast_num || 0));
+    document.getElementById('mapPorts').textContent = ports.toLocaleString();
+  }
+
+  // ── Event Listeners ─────────────────────────────────────────────────
+  function initEventListeners() {
+    // Filter chips
+    document.querySelectorAll('.chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        const filterType = chip.dataset.filter;
+        const value = chip.dataset.value;
+
+        // Deactivate siblings, activate this one
+        chip.closest('.filter-chips').querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+
+        filters[filterType] = value;
+        applyFilters();
+      });
+    });
+
+    // Power slider
+    const powerSlider = document.getElementById('powerSlider');
+    const powerValue = document.getElementById('powerValue');
+    powerSlider.addEventListener('input', () => {
+      const val = parseInt(powerSlider.value);
+      filters.minPower = val;
+      powerValue.textContent = val >= 1000 ? `${(val/1000).toFixed(1)}+ MW` : `${val}+ kW`;
+      applyFilters();
+    });
+
+    // Search
+    const searchInput = document.getElementById('searchInput');
+    let searchTimeout;
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        filters.search = searchInput.value.trim();
+        applyFilters();
+      }, 300);
+    });
+
+    searchInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        filters.search = searchInput.value.trim();
+        applyFilters();
+        geocodeSearch(searchInput.value.trim());
+      }
+    });
+
+    document.getElementById('searchBtn').addEventListener('click', () => {
+      filters.search = searchInput.value.trim();
+      applyFilters();
+      geocodeSearch(searchInput.value.trim());
+    });
+
+    // Geolocation
+    document.getElementById('locateBtn').addEventListener('click', geolocate);
+    document.getElementById('geolocateBtn').addEventListener('click', geolocate);
+
+    // Sidebar toggle
+    document.getElementById('sidebarToggle').addEventListener('click', () => {
+      const sidebar = document.getElementById('sidebar');
+      const btn = document.getElementById('sidebarToggle');
+      sidebar.classList.toggle('collapsed');
+      btn.textContent = sidebar.classList.contains('collapsed') ? '▶' : '◀';
+      setTimeout(() => map.invalidateSize(), 350);
+    });
+
+    // Reset filters
+    document.getElementById('resetFilters').addEventListener('click', () => {
+      filters.vehicleClass = 'all';
+      filters.connector = 'all';
+      filters.minPower = 150;
+      filters.network = 'all';
+      filters.facility = 'all';
+      filters.funding = 'all';
+      filters.search = '';
+
+      document.querySelectorAll('.chip').forEach(c => {
+        c.classList.toggle('active', c.dataset.value === 'all');
+      });
+      powerSlider.value = 150;
+      powerValue.textContent = '150+ kW';
+      searchInput.value = '';
+
+      applyFilters();
+      map.setView(US_CENTER, US_ZOOM);
+    });
+
+    // Export CSV
+    document.getElementById('exportBtn').addEventListener('click', () => {
+      if (filteredStations.length === 0) {
+        showToast('No stations to export.');
+        return;
+      }
+      const headers = ['Name','Address','City','State','ZIP','Latitude','Longitude','Network','Max Power (kW)','DC Fast Ports','Connectors','Vehicle Class','Facility Type','Hours','Pricing','Funding'];
+      const rows = filteredStations.map(s => [
+        s.station_name, s.street_address, s.city, s.state, s.zip,
+        s.latitude, s.longitude, s.ev_network, s._maxPower || '',
+        s.ev_dc_fast_num || '', (s.ev_connector_types || []).join('; '),
+        s.maximum_vehicle_class || '', s.facility_type || '',
+        s.access_days_time || '', s.ev_pricing || '',
+        (s.funding_sources || []).join('; ')
+      ]);
+      const csv = [headers, ...rows].map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+      const blob = new Blob([csv], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `chargefleet-stations-${new Date().toISOString().slice(0,10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(`Exported ${filteredStations.length} stations.`);
+    });
+
+    // Share link
+    document.getElementById('shareBtn').addEventListener('click', () => {
+      saveStateToHash();
+      navigator.clipboard.writeText(window.location.href).then(() => {
+        showToast('Link copied to clipboard!');
+      }).catch(() => {
+        showToast('Copy this URL to share: ' + window.location.href);
+      });
+    });
+
+    // Update list when map moves
+    map.on('moveend', () => {
+      if (map.getZoom() > 7) updateStationList();
+      scheduleHashUpdate();
+    });
+  }
+
+  // ── Geocoding ───────────────────────────────────────────────────────
+  async function geocodeSearch(query) {
+    if (!query) return;
+    try {
+      const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=1`);
+      const results = await resp.json();
+      if (results.length > 0) {
+        const { lat, lon } = results[0];
+        map.setView([parseFloat(lat), parseFloat(lon)], 10);
+      }
+    } catch (err) {
+      console.error('Geocode error:', err);
+    }
+  }
+
+  function geolocate() {
+    if (!navigator.geolocation) {
+      showToast('Geolocation not supported by your browser.');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      pos => {
+        const { latitude, longitude } = pos.coords;
+        map.setView([latitude, longitude], 10);
+        if (userMarker) map.removeLayer(userMarker);
+        userMarker = L.circleMarker([latitude, longitude], {
+          radius: 8, fillColor: '#3b82f6', fillOpacity: 1,
+          color: 'white', weight: 3
+        }).addTo(map).bindPopup('Your Location');
+      },
+      err => showToast('Unable to get your location.'),
+      { enableHighAccuracy: true }
+    );
+  }
+
+  // ── Utils ───────────────────────────────────────────────────────────
+  function escHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function showToast(msg) {
+    const toast = document.getElementById('toast');
+    toast.textContent = msg;
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 4000);
+  }
+
+  // ── URL Hash State ───────────────────────────────────────────────────
+  function saveStateToHash() {
+    const params = new URLSearchParams();
+    const center = map.getCenter();
+    const zoom = map.getZoom();
+    params.set('lat', center.lat.toFixed(4));
+    params.set('lng', center.lng.toFixed(4));
+    params.set('z', zoom);
+    if (filters.vehicleClass !== 'all') params.set('vc', filters.vehicleClass);
+    if (filters.connector !== 'all') params.set('ct', filters.connector);
+    if (filters.minPower !== 150) params.set('pw', filters.minPower);
+    if (filters.network !== 'all') params.set('net', filters.network);
+    if (filters.facility !== 'all') params.set('fac', filters.facility);
+    if (filters.funding !== 'all') params.set('fund', filters.funding);
+    if (filters.search) params.set('q', filters.search);
+    if (selectedStationId) params.set('sid', selectedStationId);
+    window.history.replaceState(null, '', '#' + params.toString());
+  }
+
+  function loadStateFromHash() {
+    const hash = window.location.hash.slice(1);
+    if (!hash) return;
+    const params = new URLSearchParams(hash);
+
+    if (params.has('lat') && params.has('lng') && params.has('z')) {
+      map.setView([parseFloat(params.get('lat')), parseFloat(params.get('lng'))], parseInt(params.get('z')));
+    }
+    if (params.has('vc')) {
+      filters.vehicleClass = params.get('vc');
+      activateChip('vehicleClass', filters.vehicleClass);
+    }
+    if (params.has('ct')) {
+      filters.connector = params.get('ct');
+      activateChip('connector', filters.connector);
+    }
+    if (params.has('pw')) {
+      filters.minPower = parseInt(params.get('pw'));
+      document.getElementById('powerSlider').value = filters.minPower;
+      const v = filters.minPower;
+      document.getElementById('powerValue').textContent = v >= 1000 ? `${(v/1000).toFixed(1)}+ MW` : `${v}+ kW`;
+    }
+    if (params.has('net')) {
+      filters.network = params.get('net');
+      activateChip('network', filters.network);
+    }
+    if (params.has('fac')) {
+      filters.facility = params.get('fac');
+      activateChip('facility', filters.facility);
+    }
+    if (params.has('fund')) {
+      filters.funding = params.get('fund');
+      activateChip('funding', filters.funding);
+    }
+    if (params.has('q')) {
+      filters.search = params.get('q');
+      document.getElementById('searchInput').value = filters.search;
+    }
+    if (params.has('sid')) {
+      selectedStationId = parseInt(params.get('sid'));
+    }
+  }
+
+  function activateChip(filterType, value) {
+    document.querySelectorAll(`[data-filter="${filterType}"]`).forEach(c => {
+      c.classList.toggle('active', c.dataset.value === value);
+    });
+  }
+
+  // Save state on map move and filter change
+  let hashTimeout;
+  function scheduleHashUpdate() {
+    clearTimeout(hashTimeout);
+    hashTimeout = setTimeout(saveStateToHash, 500);
+  }
+
+  // ── Boot ────────────────────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', init);
+})();
+</script>
+</body>
+</html>

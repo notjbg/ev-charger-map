@@ -1,0 +1,77 @@
+# ⚡ ChargeFleet — Commercial EV Charger Map
+
+Interactive map of public DC fast charging stations for medium and heavy-duty electric vehicles across the United States.
+
+**[→ Live Demo](https://notjbg.github.io/ev-charger-map/)**
+
+## Why This Exists
+
+The medium and heavy-duty EV market is accelerating, but fleet operators still can't easily find chargers that can actually serve their vehicles. Existing tools (AFDC locator, PlugShare, ChargeHub) mix passenger and commercial infrastructure, making it hard to plan routes for Class 3-8 vehicles.
+
+ChargeFleet surfaces only the stations that matter for commercial fleets: high-power DCFC, truck-accessible facilities, NEVI corridor chargers, and stations explicitly tagged for MD/HD vehicles.
+
+## Features
+
+- **2,700+ commercial-relevant stations** aggregated from AFDC data
+- **Smart filtering** by vehicle class (MD/HD), connector type (NACS, CCS, CHAdeMO, MCS), power level, network, facility type, and federal funding source
+- **Real-time AFDC data** — always current with DOE's Alternative Fuel Station Locator
+- **Marker clustering** with color-coded power levels and vehicle class indicators
+- **Station details** with pricing, hours, directions, port counts
+- **Location search** with geocoding and "Near Me" geolocation
+- **CSV export** of filtered results for fleet planning
+- **Shareable URLs** with map position and filter state preserved in the hash
+- **Dark mode** optimized for extended use
+- **Mobile responsive** — works on phone, tablet, desktop
+- **Zero dependencies** — single HTML file, no build tools, no frameworks
+
+## Data Sources
+
+| Source | What It Captures |
+|--------|-----------------|
+| AFDC MD/HD tagged | Stations explicitly marked for medium/heavy-duty vehicles |
+| Truck stops & travel centers | DCFC at truck-accessible facilities |
+| NEVI/CFI funded | Federal highway corridor charging infrastructure |
+| 350kW+ stations | Ultra-fast chargers capable of serving commercial vehicles |
+
+All data from the [AFDC Alternative Fuel Station Locator API](https://developer.nrel.gov/docs/transportation/alt-fuel-stations-v1/) (U.S. Department of Energy).
+
+## Connector Types
+
+| Code | Standard | Use Case |
+|------|----------|----------|
+| NACS | J3400 (formerly Tesla) | Increasingly adopted by truck OEMs |
+| CCS | SAE J1772 Combo | Current standard for most MD/HD EVs |
+| CHAdeMO | CHAdeMO | Legacy, declining for new deployments |
+| MCS | J3271 Megawatt Charging | Emerging standard for HD trucks (1MW+) |
+
+## Tech Stack
+
+- Vanilla HTML/CSS/JavaScript (single file)
+- [Leaflet](https://leafletjs.com/) + OpenStreetMap tiles
+- [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
+- AFDC API (DEMO_KEY — replace with your own from [developer.nrel.gov](https://developer.nrel.gov/signup/))
+
+## Usage
+
+Open `index.html` in a browser. That's it.
+
+To self-host or deploy:
+```bash
+# GitHub Pages (this repo)
+git push origin main
+
+# Any static host
+cp index.html /your/web/root/
+```
+
+## API Key
+
+The app ships with `DEMO_KEY` which has rate limits (1,000 requests/hour per IP). For production use, get a free key at [developer.nrel.gov/signup](https://developer.nrel.gov/signup/) and replace `DEMO_KEY` in the source.
+
+## License
+
+MIT
+
+## Author
+
+Built by [Jonah Berg-Ganzarain](https://github.com/notjbg) — Senior Manager, Strategic Communications at TRC Companies (Clean Transportation Solutions).
