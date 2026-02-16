@@ -13,6 +13,56 @@
 <meta name="twitter:title" content="ChargeFleet — Commercial EV Charger Map">
 <meta name="twitter:description" content="Interactive map of 2,700+ commercial EV charging stations for MD/HD fleets.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ChargeFleet">
+<link rel="manifest" href="data:application/json,%7B%22name%22%3A%22ChargeFleet%22%2C%22short_name%22%3A%22ChargeFleet%22%2C%22start_url%22%3A%22%2F%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230a0e17%22%2C%22theme_color%22%3A%22%230a0e17%22%7D">
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  "name": "ChargeFleet",
+  "alternateName": "Commercial EV Charger Map",
+  "description": "Interactive map of public DC fast charging stations for medium and heavy-duty electric vehicles across the United States. Filter by power level, connector type, vehicle class, network, and funding source. Route corridor search for fleet planning.",
+  "url": "https://notjbg.github.io/ev-charger-map/",
+  "applicationCategory": "Transportation",
+  "operatingSystem": "Web",
+  "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"},
+  "creator": {"@type": "Person", "name": "Jonah Berg", "url": "https://jonahberg.com"}
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "Where can I charge a medium or heavy-duty electric truck?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "ChargeFleet maps all public DC fast charging stations suitable for commercial electric vehicles across the US, including truck stops, travel centers, NEVI-funded highway corridor chargers, and high-power (350kW+) stations. Filter by vehicle class (MD Class 3-6 or HD Class 7-8), connector type (CCS, NACS, MCS), and minimum power level."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What is NEVI and how does it affect commercial EV charging?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "NEVI (National Electric Vehicle Infrastructure) is a $7.5 billion federal program funding EV charging stations along designated Alternative Fuel Corridors. These stations must have at least 150kW chargers and are spaced every 50 miles along interstate highways. ChargeFleet lets you filter specifically for NEVI and CFI (Charging and Fueling Infrastructure) funded stations."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What connectors do commercial electric trucks use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Most commercial EVs use CCS (Combined Charging System) or NACS (North American Charging Standard, formerly Tesla) connectors. The emerging MCS (Megawatt Charging System) standard supports charging above 1MW for the heaviest vehicles like Class 8 trucks. ChargeFleet shows all connector types available at each station."
+      }
+    }
+  ]
+}
+</script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
@@ -811,17 +861,52 @@ body {
     <span>Ports: <strong id="totalPorts">—</strong></span>
     <span>Networks: <strong id="totalNetworks">—</strong></span>
     <span>Last Updated: <strong id="lastUpdated">—</strong></span>
+    <button class="btn-icon" id="statsToggle" title="Station statistics" style="font-size:12px;padding:6px 10px;margin-left:8px;">📊</button>
   </div>
+</div>
+
+<!-- Stats Dashboard -->
+<div id="statsDashboard" style="display:none;position:absolute;top:56px;right:16px;z-index:999;background:var(--bg-panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;width:320px;max-height:70vh;overflow-y:auto;box-shadow:var(--shadow);">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+    <div style="font-size:14px;font-weight:700;color:var(--text-bright);">📊 Station Analytics</div>
+    <button id="statsClose" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;">✕</button>
+  </div>
+  <div id="statsContent" style="font-size:12px;line-height:1.8;"></div>
 </div>
 
 <div class="app">
   <div class="sidebar" id="sidebar" role="complementary" aria-label="Station filters and list">
     <div class="drawer-handle" id="drawerHandle"><div class="drawer-handle-bar"></div></div>
     <div class="search-container">
-      <div class="search-box">
-        <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." aria-label="Search stations by location" autocomplete="off" />
-        <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
-        <button class="btn-icon" id="locateBtn" title="My Location">📍</button>
+      <div class="search-mode-tabs" style="display:flex;gap:0;margin-bottom:8px;">
+        <button class="search-tab active" id="searchTabLocation" style="flex:1;padding:6px 8px;font-size:11px;font-weight:600;background:var(--accent);color:white;border:1px solid var(--accent);border-radius:var(--radius) 0 0 var(--radius);cursor:pointer;">📍 Location</button>
+        <button class="search-tab" id="searchTabRoute" style="flex:1;padding:6px 8px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:0 var(--radius) var(--radius) 0;cursor:pointer;">🛣️ Route Corridor</button>
+      </div>
+      <div id="locationSearchPanel">
+        <div class="search-box">
+          <input type="text" class="search-input" id="searchInput" placeholder="Search by city, state, or ZIP..." aria-label="Search stations by location" autocomplete="off" />
+          <button class="btn-icon" id="searchBtn" title="Search">🔍</button>
+          <button class="btn-icon" id="locateBtn" title="My Location">📍</button>
+        </div>
+      </div>
+      <div id="routeSearchPanel" style="display:none;">
+        <div class="search-box" style="margin-bottom:6px;">
+          <input type="text" class="search-input" id="routeOrigin" placeholder="Origin (city, address, or ZIP)" aria-label="Route origin" autocomplete="off" />
+        </div>
+        <div class="search-box" style="margin-bottom:6px;">
+          <input type="text" class="search-input" id="routeDestination" placeholder="Destination (city, address, or ZIP)" aria-label="Route destination" autocomplete="off" />
+        </div>
+        <div style="display:flex;gap:6px;align-items:center;margin-bottom:4px;">
+          <label style="font-size:11px;color:var(--text-dim);">Radius:</label>
+          <select id="routeRadius" style="flex:1;padding:4px 8px;font-size:11px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);">
+            <option value="2">2 miles</option>
+            <option value="5" selected>5 miles</option>
+            <option value="10">10 miles</option>
+            <option value="25">25 miles</option>
+          </select>
+          <button class="btn btn-primary" id="routeSearchBtn" style="padding:6px 14px;font-size:12px;">Search Route</button>
+        </div>
+        <div id="routeStatus" style="font-size:11px;color:var(--text-dim);display:none;"></div>
       </div>
     </div>
 
@@ -932,7 +1017,8 @@ body {
 
       <div style="display:flex;gap:8px;">
         <button class="btn btn-secondary" id="resetFilters" style="flex:1">Reset Filters</button>
-        <button class="btn btn-secondary" id="exportBtn" style="flex:1" title="Export filtered stations as CSV">📥 Export CSV</button>
+        <button class="btn btn-secondary" id="exportBtn" style="flex:1" title="Export filtered stations as CSV">📥 CSV</button>
+        <button class="btn btn-secondary" id="exportGeoBtn" style="flex:1" title="Export filtered stations as GeoJSON">📥 GeoJSON</button>
         <button class="btn btn-secondary" id="shareBtn" title="Copy shareable link">🔗</button>
       </div>
     </div>
@@ -1867,6 +1953,26 @@ body {
       showToast(`Exported ${filteredStations.length} stations.`);
     });
 
+    // GeoJSON Export
+    document.getElementById('exportGeoBtn').addEventListener('click', exportGeoJSON);
+
+    // Stats Dashboard
+    document.getElementById('statsToggle').addEventListener('click', () => {
+      const dash = document.getElementById('statsDashboard');
+      if (dash.style.display === 'none') {
+        updateStats();
+        dash.style.display = 'block';
+      } else {
+        dash.style.display = 'none';
+      }
+    });
+    document.getElementById('statsClose').addEventListener('click', () => {
+      document.getElementById('statsDashboard').style.display = 'none';
+    });
+
+    // Route Search
+    initRouteSearch();
+
     // Share link
     document.getElementById('shareBtn').addEventListener('click', () => {
       saveStateToHash();
@@ -2128,6 +2234,321 @@ body {
   function scheduleHashUpdate() {
     clearTimeout(hashTimeout);
     hashTimeout = setTimeout(saveStateToHash, 500);
+  }
+
+  // ── Route Corridor Search ─────────────────────────────────────────────
+  let routeLayer = null;
+  let routeStations = [];
+
+  function initRouteSearch() {
+    const tabLocation = document.getElementById('searchTabLocation');
+    const tabRoute = document.getElementById('searchTabRoute');
+    const panelLocation = document.getElementById('locationSearchPanel');
+    const panelRoute = document.getElementById('routeSearchPanel');
+
+    tabLocation.addEventListener('click', () => {
+      tabLocation.style.background = 'var(--accent)';
+      tabLocation.style.color = 'white';
+      tabLocation.style.borderColor = 'var(--accent)';
+      tabLocation.classList.add('active');
+      tabRoute.style.background = 'var(--bg-card)';
+      tabRoute.style.color = 'var(--text-dim)';
+      tabRoute.style.borderColor = 'var(--border)';
+      tabRoute.classList.remove('active');
+      panelLocation.style.display = '';
+      panelRoute.style.display = 'none';
+      clearRoute();
+    });
+
+    tabRoute.addEventListener('click', () => {
+      tabRoute.style.background = 'var(--accent)';
+      tabRoute.style.color = 'white';
+      tabRoute.style.borderColor = 'var(--accent)';
+      tabRoute.classList.add('active');
+      tabLocation.style.background = 'var(--bg-card)';
+      tabLocation.style.color = 'var(--text-dim)';
+      tabLocation.style.borderColor = 'var(--border)';
+      tabLocation.classList.remove('active');
+      panelLocation.style.display = 'none';
+      panelRoute.style.display = '';
+    });
+
+    document.getElementById('routeSearchBtn').addEventListener('click', searchRoute);
+    document.getElementById('routeDestination').addEventListener('keydown', e => {
+      if (e.key === 'Enter') searchRoute();
+    });
+  }
+
+  async function searchRoute() {
+    const origin = document.getElementById('routeOrigin').value.trim();
+    const dest = document.getElementById('routeDestination').value.trim();
+    const radius = document.getElementById('routeRadius').value;
+    const status = document.getElementById('routeStatus');
+
+    if (!origin || !dest) {
+      showToast('Enter both origin and destination.');
+      return;
+    }
+
+    status.style.display = 'block';
+    status.innerHTML = '<span style="color:var(--accent);">⏳ Geocoding origin...</span>';
+
+    try {
+      // Geocode origin and destination
+      const [originCoords, destCoords] = await Promise.all([
+        geocodePlace(origin),
+        geocodePlace(dest)
+      ]);
+
+      if (!originCoords || !destCoords) {
+        status.innerHTML = '<span style="color:var(--red);">❌ Could not find one or both locations. Try more specific addresses.</span>';
+        return;
+      }
+
+      status.innerHTML = '<span style="color:var(--accent);">⏳ Getting route from OSRM...</span>';
+
+      // Get driving route from OSRM
+      const routeUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords.lng},${originCoords.lat};${destCoords.lng},${destCoords.lat}?overview=full&geometries=geojson`;
+      const routeResp = await fetch(routeUrl);
+      const routeData = await routeResp.json();
+
+      if (!routeData.routes || routeData.routes.length === 0) {
+        status.innerHTML = '<span style="color:var(--red);">❌ No driving route found between these locations.</span>';
+        return;
+      }
+
+      const route = routeData.routes[0];
+      const routeCoords = route.geometry.coordinates; // [lng, lat] pairs
+      const distMiles = (route.distance / 1609.34).toFixed(0);
+      const durationHrs = (route.duration / 3600).toFixed(1);
+
+      // Draw route on map
+      clearRoute();
+      const latLngs = routeCoords.map(c => [c[1], c[0]]);
+      routeLayer = L.layerGroup();
+      L.polyline(latLngs, { color: '#3b82f6', weight: 4, opacity: 0.7, dashArray: '8 6' }).addTo(routeLayer);
+      L.circleMarker([originCoords.lat, originCoords.lng], { radius: 8, fillColor: '#10b981', fillOpacity: 1, color: 'white', weight: 2 })
+        .bindPopup(`<strong>Origin:</strong> ${escHtml(origin)}`).addTo(routeLayer);
+      L.circleMarker([destCoords.lat, destCoords.lng], { radius: 8, fillColor: '#ef4444', fillOpacity: 1, color: 'white', weight: 2 })
+        .bindPopup(`<strong>Destination:</strong> ${escHtml(dest)}`).addTo(routeLayer);
+      routeLayer.addTo(map);
+
+      // Fit map to route
+      const bounds = L.latLngBounds(latLngs);
+      map.fitBounds(bounds, { padding: [50, 50] });
+
+      status.innerHTML = `<span style="color:var(--accent);">⏳ Finding chargers within ${radius} mi of route...</span>`;
+
+      // Find stations near route by checking distance to polyline segments
+      const radiusMi = parseFloat(radius);
+      const nearbyStations = findStationsNearRoute(latLngs, radiusMi);
+
+      // Highlight route stations
+      routeStations = nearbyStations;
+      filteredStations = nearbyStations;
+      updateMarkers();
+      updateStationList();
+      updateMapInfo();
+
+      status.innerHTML = `<span style="color:var(--green);">✅ ${distMiles} mi route, ~${durationHrs} hrs — <strong>${nearbyStations.length} chargers</strong> within ${radius} mi</span>
+        <button id="clearRouteBtn" style="display:block;margin-top:6px;padding:4px 12px;font-size:11px;background:var(--bg-card);color:var(--text);border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;">Clear Route</button>`;
+      document.getElementById('clearRouteBtn').addEventListener('click', () => {
+        clearRoute();
+        applyFilters();
+        status.style.display = 'none';
+      });
+
+    } catch (err) {
+      console.error('Route search error:', err);
+      status.innerHTML = `<span style="color:var(--red);">❌ Route search failed: ${err.message}</span>`;
+    }
+  }
+
+  async function geocodePlace(query) {
+    const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=us&limit=1`);
+    const results = await resp.json();
+    if (results.length > 0) {
+      return { lat: parseFloat(results[0].lat), lng: parseFloat(results[0].lon) };
+    }
+    return null;
+  }
+
+  function findStationsNearRoute(routeLatLngs, radiusMiles) {
+    // Sample route every ~5 points for performance
+    const sampleRate = Math.max(1, Math.floor(routeLatLngs.length / 200));
+    const samples = routeLatLngs.filter((_, i) => i % sampleRate === 0);
+
+    return allStations.filter(s => {
+      // Quick bounding box check first
+      for (const pt of samples) {
+        const dist = haversineDistance(s.latitude, s.longitude, pt[0], pt[1]);
+        if (dist <= radiusMiles) return true;
+      }
+      return false;
+    });
+  }
+
+  function clearRoute() {
+    if (routeLayer) {
+      map.removeLayer(routeLayer);
+      routeLayer = null;
+    }
+    routeStations = [];
+  }
+
+  // ── GeoJSON Export ────────────────────────────────────────────────────
+  function exportGeoJSON() {
+    if (filteredStations.length === 0) {
+      showToast('No stations to export.');
+      return;
+    }
+    const geojson = {
+      type: 'FeatureCollection',
+      features: filteredStations.map(s => ({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [s.longitude, s.latitude] },
+        properties: {
+          name: s.station_name,
+          address: `${s.street_address}, ${s.city}, ${s.state} ${s.zip}`,
+          network: s.ev_network,
+          maxPowerKW: s._maxPower || null,
+          dcFastPorts: s.ev_dc_fast_num || 0,
+          connectors: (s.ev_connector_types || []).join(', '),
+          vehicleClass: s.maximum_vehicle_class || null,
+          facilityType: s.facility_type || null,
+          status: s.status_code === 'E' ? 'Available' : s.status_code === 'P' ? 'Planned' : s.status_code,
+          hours: s.access_days_time || null,
+          pricing: s.ev_pricing || null,
+          funding: (s.funding_sources || []).join(', ') || null,
+          phone: s.station_phone || null,
+          lastConfirmed: s.date_last_confirmed || null,
+          afdcId: s.id
+        }
+      }))
+    };
+    const blob = new Blob([JSON.stringify(geojson, null, 2)], { type: 'application/geo+json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chargefleet-stations-${new Date().toISOString().slice(0,10)}.geojson`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${filteredStations.length} stations as GeoJSON.`);
+  }
+
+  // ── Stats Dashboard ─────────────────────────────────────────────────
+  function updateStats() {
+    const stations = filteredStations.length > 0 ? filteredStations : allStations;
+    const label = filteredStations.length > 0 && filteredStations.length < allStations.length ? 'filtered' : 'all';
+
+    // Network breakdown
+    const networks = {};
+    const connectors = {};
+    const powerBuckets = { '1MW+': 0, '350-999kW': 0, '150-349kW': 0, '50-149kW': 0, 'Unknown': 0 };
+    const states = {};
+    let totalPorts = 0;
+    let plannedCount = 0;
+    let neviCount = 0;
+
+    stations.forEach(s => {
+      const net = s.ev_network || 'Unknown';
+      networks[net] = (networks[net] || 0) + 1;
+
+      (s.ev_connector_types || []).forEach(c => {
+        connectors[c] = (connectors[c] || 0) + 1;
+      });
+
+      const p = s._maxPower;
+      if (p >= 1000) powerBuckets['1MW+']++;
+      else if (p >= 350) powerBuckets['350-999kW']++;
+      else if (p >= 150) powerBuckets['150-349kW']++;
+      else if (p > 0) powerBuckets['50-149kW']++;
+      else powerBuckets['Unknown']++;
+
+      if (s.state) states[s.state] = (states[s.state] || 0) + 1;
+      totalPorts += (s.ev_dc_fast_num || 0);
+      if (s.status_code === 'P') plannedCount++;
+      if (s.funding_sources?.includes('NEVI')) neviCount++;
+    });
+
+    // Sort networks by count
+    const topNetworks = Object.entries(networks).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const maxNet = topNetworks[0]?.[1] || 1;
+
+    // Sort states by count
+    const topStates = Object.entries(states).sort((a, b) => b[1] - a[1]).slice(0, 10);
+    const maxState = topStates[0]?.[1] || 1;
+
+    const connectorLabels = { 'TESLA': 'NACS', 'J1772COMBO': 'CCS', 'CHADEMO': 'CHAdeMO', 'J3271': 'MCS', 'J1772': 'J1772' };
+
+    let html = `
+      <div style="margin-bottom:12px;color:var(--text-dim);">Showing ${label} stations (${stations.length.toLocaleString()})</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;">
+        <div style="background:var(--bg-card);padding:10px;border-radius:var(--radius);text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:var(--accent);">${stations.length.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text-dim);">Stations</div>
+        </div>
+        <div style="background:var(--bg-card);padding:10px;border-radius:var(--radius);text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:var(--green);">${totalPorts.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text-dim);">DC Fast Ports</div>
+        </div>
+        <div style="background:var(--bg-card);padding:10px;border-radius:var(--radius);text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:var(--purple);">${plannedCount.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text-dim);">Planned</div>
+        </div>
+        <div style="background:var(--bg-card);padding:10px;border-radius:var(--radius);text-align:center;">
+          <div style="font-size:18px;font-weight:700;color:var(--cyan);">${neviCount.toLocaleString()}</div>
+          <div style="font-size:10px;color:var(--text-dim);">NEVI Funded</div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:600;color:var(--text-bright);margin-bottom:8px;">Power Distribution</div>
+      ${Object.entries(powerBuckets).map(([label, count]) => {
+        const pct = stations.length > 0 ? (count / stations.length * 100) : 0;
+        const colors = { '1MW+': 'var(--red)', '350-999kW': 'var(--orange)', '150-349kW': 'var(--amber)', '50-149kW': 'var(--accent)', 'Unknown': 'var(--purple)' };
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="width:80px;font-size:11px;color:var(--text-dim);">${label}</span>
+          <div style="flex:1;height:14px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:${colors[label]};border-radius:3px;"></div>
+          </div>
+          <span style="width:40px;text-align:right;font-size:11px;color:var(--text);">${count}</span>
+        </div>`;
+      }).join('')}
+
+      <div style="font-size:12px;font-weight:600;color:var(--text-bright);margin:12px 0 8px;">Top Networks</div>
+      ${topNetworks.map(([net, count]) => {
+        const pct = (count / maxNet * 100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="width:80px;font-size:11px;color:var(--text-dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${escHtml(net)}">${escHtml(networkShort(net))}</span>
+          <div style="flex:1;height:14px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:var(--accent);border-radius:3px;"></div>
+          </div>
+          <span style="width:40px;text-align:right;font-size:11px;color:var(--text);">${count}</span>
+        </div>`;
+      }).join('')}
+
+      <div style="font-size:12px;font-weight:600;color:var(--text-bright);margin:12px 0 8px;">Top States</div>
+      ${topStates.map(([st, count]) => {
+        const pct = (count / maxState * 100);
+        return `<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="width:30px;font-size:11px;color:var(--text-dim);font-weight:600;">${st}</span>
+          <div style="flex:1;height:14px;background:var(--bg-card);border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:var(--green);border-radius:3px;"></div>
+          </div>
+          <span style="width:40px;text-align:right;font-size:11px;color:var(--text);">${count}</span>
+        </div>`;
+      }).join('')}
+
+      <div style="font-size:12px;font-weight:600;color:var(--text-bright);margin:12px 0 8px;">Connectors</div>
+      ${Object.entries(connectors).sort((a,b) => b[1]-a[1]).map(([c, count]) => {
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);margin-bottom:2px;">
+          <span>${connectorLabels[c] || c}</span><span style="color:var(--text);">${count} stations</span>
+        </div>`;
+      }).join('')}
+    `;
+
+    document.getElementById('statsContent').innerHTML = html;
   }
 
   // ── Print-friendly styles ────────────────────────────────────────────
