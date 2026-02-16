@@ -1031,9 +1031,9 @@ body {
     <div class="station-list" id="stationList"></div>
 
     <div style="padding:12px 16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-dim);flex-shrink:0;line-height:1.8;">
-      Built by <a href="https://jonahberg.com" target="_blank" style="color:var(--text);text-decoration:none;font-weight:500;">Jonah Berg</a> •
-      Data: <a href="https://afdc.energy.gov" target="_blank" style="color:var(--accent);text-decoration:none;">AFDC/DOE</a> •
-      <a href="https://github.com/notjbg/ev-charger-map" target="_blank" style="color:var(--accent);text-decoration:none;">Open Source</a><br>
+      Built by <a href="https://jonahberg.com" target="_blank" rel="noopener noreferrer" style="color:var(--text);text-decoration:none;font-weight:500;">Jonah Berg</a> •
+      Data: <a href="https://afdc.energy.gov" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">AFDC/DOE</a> •
+      <a href="https://github.com/notjbg/ev-charger-map" target="_blank" rel="noopener noreferrer" style="color:var(--accent);text-decoration:none;">Open Source</a><br>
       Press <kbd style="background:var(--bg-card);padding:1px 4px;border-radius:3px;border:1px solid var(--border);font-size:10px;">/</kbd> to search •
       <span id="lastUpdatedFooter"></span>
     </div>
@@ -1089,7 +1089,7 @@ body {
     <div class="welcome-card" id="welcomeCard">
       <div style="display:flex;justify-content:space-between;align-items:start;">
         <div style="font-size:15px;font-weight:700;color:var(--text-bright);margin-bottom:8px;">⚡ Commercial EV Charging Infrastructure</div>
-        <button onclick="this.parentElement.parentElement.style.display='none'" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;">✕</button>
+        <button id="welcomeClose" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:16px;" aria-label="Close welcome card">✕</button>
       </div>
       <div style="font-size:12px;color:var(--text-dim);line-height:1.6;">
         This map shows <strong style="color:var(--text);">public DC fast charging stations</strong> relevant to
@@ -1127,7 +1127,8 @@ body {
   let selectedStationId = null;
   let markerMap = {};
   let viewMode = 'markers'; // 'markers' | 'heat'
-  let favorites = JSON.parse(localStorage.getItem('chargefleet_favs') || '[]');
+  let favorites = [];
+  try { favorites = JSON.parse(localStorage.getItem('chargefleet_favs') || '[]'); } catch(e) { /* corrupt */ }
 
   const filters = {
     vehicleClass: 'all',
@@ -1369,13 +1370,12 @@ body {
         }
       };
 
-      const mdhdData = await fetchStations({ maximum_vehicle_class: 'MD', ev_charging_level: 'dc_fast', status: statusFilter, access: 'public', country: 'US' });
-      await delay(500);
-      const truckData = await fetchStations({ ev_charging_level: 'dc_fast', facility_type: 'TRUCK_STOP,TRAVEL_CENTER,REST_STOP,FLEET_GARAGE', status: statusFilter, access: 'public', country: 'US' });
-      await delay(500);
-      const neviData = await fetchStations({ ev_charging_level: 'dc_fast', funding_sources: 'NEVI,CFI', status: statusFilter, access: 'public', country: 'US' });
-      await delay(500);
-      const highPowerData = await fetchStations({ ev_charging_level: 'dc_fast', ev_power_kw_min: 350, status: statusFilter, access: 'public', country: 'US' });
+      const [mdhdData, truckData, neviData, highPowerData] = await Promise.all([
+        fetchStations({ maximum_vehicle_class: 'MD', ev_charging_level: 'dc_fast', status: statusFilter, access: 'public', country: 'US' }),
+        fetchStations({ ev_charging_level: 'dc_fast', facility_type: 'TRUCK_STOP,TRAVEL_CENTER,REST_STOP,FLEET_GARAGE', status: statusFilter, access: 'public', country: 'US' }),
+        fetchStations({ ev_charging_level: 'dc_fast', funding_sources: 'NEVI,CFI', status: statusFilter, access: 'public', country: 'US' }),
+        fetchStations({ ev_charging_level: 'dc_fast', ev_power_kw_min: 350, status: statusFilter, access: 'public', country: 'US' })
+      ]);
 
       processStations(mdhdData, 'mdhd');
       processStations(truckData, 'truck');
@@ -1623,7 +1623,7 @@ body {
       ${s.station_phone ? `<div style="font-size:12px;color:var(--text-dim);margin-top:4px;">📞 <a href="tel:${encodeURIComponent(s.station_phone.split(' ')[0])}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
       ${s.date_last_confirmed ? `<div style="font-size:10px;color:var(--text-dim);margin-top:4px;">Last confirmed: ${escHtml(s.date_last_confirmed)}</div>` : ''}
       <div style="display:flex;gap:8px;margin-top:8px;align-items:center;">
-        <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener" style="flex:1;">📍 Get Directions →</a>
+        <a class="popup-directions" href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="flex:1;">📍 Get Directions →</a>
         <button class="fav-btn" data-fav="${s.id}" onclick="event.stopPropagation()" style="background:none;border:1px solid var(--border);border-radius:var(--radius);color:var(--amber);cursor:pointer;font-size:16px;padding:4px 10px;">${favorites.includes(String(s.id)) ? '★ Saved' : '☆ Save'}</button>
       </div>
     `;
@@ -2013,6 +2013,11 @@ body {
       }
     });
 
+    // Welcome close
+    document.getElementById('welcomeClose').addEventListener('click', () => {
+      document.getElementById('welcomeCard').style.display = 'none';
+    });
+
     // Retry button
     document.getElementById('retryBtn').addEventListener('click', () => {
       document.getElementById('errorBanner').style.display = 'none';
@@ -2178,7 +2183,13 @@ body {
     const params = new URLSearchParams(hash);
 
     if (params.has('lat') && params.has('lng') && params.has('z')) {
-      map.setView([parseFloat(params.get('lat')), parseFloat(params.get('lng'))], parseInt(params.get('z')));
+      const lat = parseFloat(params.get('lat'));
+      const lng = parseFloat(params.get('lng'));
+      const z = parseInt(params.get('z'));
+      if (Number.isFinite(lat) && Number.isFinite(lng) && Number.isFinite(z) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180 && z >= 1 && z <= 18) {
+        map.setView([lat, lng], z);
+      }
     }
     if (params.has('vc')) {
       filters.vehicleClass = params.get('vc');
