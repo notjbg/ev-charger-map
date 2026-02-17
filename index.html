@@ -843,6 +843,226 @@ body {
   padding: 4px 8px;
   outline: none;
 }
+
+/* ── Detail Panel ─────────────────────────────────── */
+.detail-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 380px;
+  height: 100%;
+  background: rgba(17,24,39,0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-left: 1px solid var(--border);
+  z-index: 900;
+  transform: translateX(100%);
+  transition: transform 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  box-shadow: -4px 0 24px rgba(0,0,0,0.4);
+}
+
+.detail-panel.open { transform: translateX(0); }
+
+.detail-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.detail-panel-close {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  color: var(--text);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  transition: all 0.2s;
+}
+
+.detail-panel-close:hover { background: var(--bg-hover); border-color: var(--accent); }
+
+.detail-panel-body { padding: 20px; flex: 1; }
+
+.detail-station-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 6px;
+  line-height: 1.3;
+}
+
+.detail-address {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
+.detail-network-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+  background: rgba(139,92,246,0.15);
+  color: var(--purple);
+  margin-bottom: 16px;
+}
+
+.detail-section-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+  margin-top: 16px;
+}
+
+.detail-connectors {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.connector-badge {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.connector-badge.power-ultra { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.3); }
+.connector-badge.power-fast { background: rgba(16,185,129,0.15); color: #34d399; border-color: rgba(16,185,129,0.3); }
+.connector-badge.power-standard { background: rgba(245,158,11,0.15); color: #fbbf24; border-color: rgba(245,158,11,0.3); }
+
+.detail-hours {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.hours-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.hours-dot.open { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.hours-dot.unknown { background: var(--text-dim); }
+
+.detail-truck-access {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  background: rgba(249,115,22,0.1);
+  border: 1px solid rgba(249,115,22,0.3);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--orange);
+  margin-bottom: 12px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.detail-grid-item {
+  background: var(--bg-card);
+  padding: 10px 12px;
+  border-radius: var(--radius);
+}
+
+.detail-grid-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.detail-grid-value {
+  font-size: 14px;
+  color: var(--text-bright);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.detail-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+.detail-actions .btn { flex: 1; justify-content: center; }
+
+.detail-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.detail-fleet-section {
+  margin-top: 16px;
+  padding: 14px;
+  background: rgba(59,130,246,0.08);
+  border: 1px solid rgba(59,130,246,0.2);
+  border-radius: var(--radius);
+}
+
+.fleet-vehicle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 0;
+  font-size: 13px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.fleet-vehicle-row:last-child { border-bottom: none; }
+
+.fleet-vehicle-name { color: var(--text); font-weight: 500; }
+.fleet-vehicle-time { color: var(--accent); font-weight: 600; }
+
+@media (max-width: 768px) {
+  .detail-panel {
+    width: 100%;
+    height: 70vh;
+    top: auto;
+    bottom: 0;
+    transform: translateY(100%);
+    border-left: none;
+    border-top: 1px solid var(--border);
+    border-radius: 16px 16px 0 0;
+  }
+  .detail-panel.open { transform: translateY(0); }
+}
 </style>
 </head>
 <body>
@@ -1099,6 +1319,15 @@ body {
         <strong style="color:var(--amber);">Use filters</strong> to narrow by vehicle class, connector type, power level, or network.
         <strong style="color:var(--green);">Export CSV</strong> for fleet planning.
       </div>
+    </div>
+
+    <!-- Detail Panel -->
+    <div class="detail-panel" id="detailPanel">
+      <div class="detail-panel-header">
+        <span style="font-size:13px;font-weight:600;color:var(--text-dim);">Station Details</span>
+        <button class="detail-panel-close" id="detailPanelClose">✕</button>
+      </div>
+      <div class="detail-panel-body" id="detailPanelBody"></div>
     </div>
   </div>
 </div>
@@ -1512,8 +1741,7 @@ body {
       });
 
       const marker = L.marker([s.latitude, s.longitude], { icon });
-      marker.bindPopup(() => createPopupContent(s), { maxWidth: 320 });
-      marker.on('click', () => selectStation(s.id));
+      marker.on('click', () => { selectStation(s.id); openDetailPanel(s); });
       markerMap[s.id] = marker;
       return marker;
     });
@@ -1542,7 +1770,115 @@ body {
     return 12;
   }
 
-  // ── Popup ───────────────────────────────────────────────────────────
+  // ── Fleet Mode ───────────────────────────────────────────────────────
+  let fleetMode = false;
+
+  // ── Detail Panel ────────────────────────────────────────────────────
+  function openDetailPanel(s) {
+    const panel = document.getElementById('detailPanel');
+    const body = document.getElementById('detailPanelBody');
+
+    const connectors = (s.ev_connector_types || []).map(c => {
+      const labels = { 'TESLA': 'NACS', 'J1772COMBO': 'CCS', 'CHADEMO': 'CHAdeMO', 'J1772': 'J1772', 'J3271': 'MCS', 'NEMA1450': 'NEMA 14-50' };
+      return labels[c] || c;
+    });
+
+    const powerClass = s._maxPower >= 350 ? 'power-ultra' : s._maxPower >= 150 ? 'power-fast' : 'power-standard';
+    const connectorBadges = connectors.map(c =>
+      `<span class="connector-badge ${powerClass}">${c}</span>`
+    ).join('');
+
+    const isTruckFriendly = s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER' ||
+                             s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD';
+
+    const isOpen = s.access_days_time && s.access_days_time.toLowerCase().includes('24');
+    const hoursDotClass = s.access_days_time ? (isOpen ? 'open' : 'open') : 'unknown';
+    const hoursLabel = isOpen ? 'Open 24/7' : (s.access_days_time || 'Hours unknown');
+
+    const tags = [];
+    if (s.status_code === 'P') tags.push('<span class="tag" style="background:rgba(139,92,246,0.15);color:#8b5cf6;">PLANNED</span>');
+    if (s.maximum_vehicle_class === 'HD') tags.push('<span class="tag tag-hd">HD Class 7-8</span>');
+    if (s.maximum_vehicle_class === 'MD') tags.push('<span class="tag tag-md">MD Class 3-6</span>');
+    if (s._maxPower >= 1000) tags.push('<span class="tag tag-mcs">MW-Class</span>');
+    if (s.funding_sources) {
+      s.funding_sources.forEach(f => {
+        if (f === 'NEVI') tags.push('<span class="tag tag-nevi">NEVI</span>');
+        if (f === 'CFI') tags.push('<span class="tag tag-nevi">CFI</span>');
+      });
+    }
+
+    const facilityLabels = {
+      'TRUCK_STOP': 'Truck Stop', 'TRAVEL_CENTER': 'Travel Center', 'REST_STOP': 'Rest Stop',
+      'FLEET_GARAGE': 'Fleet Garage', 'GAS_STATION': 'Gas Station', 'STANDALONE_STATION': 'Standalone'
+    };
+
+    let distanceHtml = '';
+    if (userLocation) {
+      const dist = haversineDistance(userLocation.lat, userLocation.lng, s.latitude, s.longitude);
+      distanceHtml = `<div style="font-size:13px;color:var(--cyan);font-weight:600;margin-bottom:12px;">📏 ${dist.toFixed(1)} miles away</div>`;
+    }
+
+    const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
+
+    let fleetHtml = '';
+    if (fleetMode && s._maxPower >= 150) {
+      fleetHtml = `
+        <div class="detail-fleet-section">
+          <div class="detail-section-label" style="margin-top:0;">🚛 Fleet Charge Estimates (10–80%)</div>
+          <div class="fleet-vehicle-row"><span class="fleet-vehicle-name">Tesla Semi</span><span class="fleet-vehicle-time">~60 min</span></div>
+          <div class="fleet-vehicle-row"><span class="fleet-vehicle-name">Freightliner eCascadia</span><span class="fleet-vehicle-time">~45 min</span></div>
+          <div class="fleet-vehicle-row"><span class="fleet-vehicle-name">Volvo VNR Electric</span><span class="fleet-vehicle-time">~40 min</span></div>
+        </div>`;
+    }
+
+    body.innerHTML = `
+      <div class="detail-station-name">${escHtml(s.station_name)}</div>
+      <div class="detail-address">${escHtml(s.street_address)}, ${escHtml(s.city)}, ${s.state} ${s.zip}</div>
+      <span class="detail-network-badge">${escHtml(networkDisplay(s.ev_network) || 'Unknown Network')}</span>
+      <div class="detail-tags">${tags.join('')}</div>
+      ${distanceHtml}
+      ${isTruckFriendly ? '<div class="detail-truck-access">🚛 Truck Accessible</div>' : ''}
+      <div class="detail-section-label">Connectors</div>
+      <div class="detail-connectors">${connectorBadges || '<span style="color:var(--text-dim);font-size:13px;">Unknown</span>'}</div>
+      <div class="detail-hours">
+        <span class="hours-dot ${hoursDotClass}"></span>
+        <span style="color:var(--text);">${escHtml(hoursLabel)}</span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Max Power</div>
+          <div class="detail-grid-value">${s._maxPower > 0 ? s._maxPower + ' kW' : '—'}</div>
+        </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">DC Fast Ports</div>
+          <div class="detail-grid-value">${s.ev_dc_fast_num || '—'}</div>
+        </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Facility</div>
+          <div class="detail-grid-value">${facilityLabels[s.facility_type] || s.facility_type || '—'}</div>
+        </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Status</div>
+          <div class="detail-grid-value">${s.status_code === 'E' ? '✅ Available' : s.status_code === 'P' ? '🔮 Planned' : s.status_code}</div>
+        </div>
+      </div>
+      ${s.ev_pricing ? `<div style="font-size:13px;color:var(--green);margin-bottom:8px;">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
+      ${s.station_phone ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">📞 <a href="tel:${encodeURIComponent(s.station_phone.split(' ')[0])}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
+      ${fleetHtml}
+      <div class="detail-actions">
+        <a class="btn btn-primary" href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:white;">📍 Directions</a>
+        <button class="btn btn-secondary fav-btn" data-fav="${s.id}">${favorites.includes(String(s.id)) ? '★ Saved' : '☆ Save'}</button>
+      </div>
+    `;
+
+    panel.classList.add('open');
+  }
+
+  function closeDetailPanel() {
+    document.getElementById('detailPanel').classList.remove('open');
+  }
+
+  // ── Popup (kept for fallback) ───────────────────────────────────────
   function createPopupContent(s) {
     const connectors = (s.ev_connector_types || []).map(c => {
       const labels = {
@@ -1725,7 +2061,7 @@ body {
         const station = allStations.find(s => s.id === id);
         if (station) {
           map.setView([station.latitude, station.longitude], 14);
-          if (markerMap[id]) markerMap[id].openPopup();
+          openDetailPanel(station);
         }
       });
     });
@@ -2010,6 +2346,14 @@ body {
       }
       if (e.key === 'Escape') {
         document.getElementById('searchInput').blur();
+      }
+    });
+
+    // Detail panel close
+    document.getElementById('detailPanelClose').addEventListener('click', closeDetailPanel);
+    map.on('click', (e) => {
+      if (document.getElementById('detailPanel').classList.contains('open')) {
+        closeDetailPanel();
       }
     });
 
