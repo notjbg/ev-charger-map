@@ -993,6 +993,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 }
 
 .hours-dot.open { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.hours-dot.limited { background: var(--amber); box-shadow: 0 0 6px var(--amber); }
 .hours-dot.unknown { background: var(--text-dim); }
 
 .detail-truck-access {
@@ -1747,13 +1748,13 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
         if (!s.funding_sources || !s.funding_sources.includes(filters.funding)) return false;
       }
 
-      // Fleet mode: 150kW+ and truck-accessible only
+      // Fleet mode: 150kW+ AND truck-accessible
       if (fleetMode) {
-        const isTruck = s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER' ||
-                         s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD' ||
-                         s._maxPower >= 150;
-        if (!isTruck) return false;
         if (s._maxPower > 0 && s._maxPower < 150) return false;
+        const truckAccessible = s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER' ||
+                         s.facility_type === 'REST_STOP' || s.facility_type === 'FLEET_GARAGE' ||
+                         s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD';
+        if (!truckAccessible) return false;
       }
 
       // Favorites
@@ -1867,7 +1868,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
                              s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD';
 
     const isOpen = s.access_days_time && s.access_days_time.toLowerCase().includes('24');
-    const hoursDotClass = s.access_days_time ? (isOpen ? 'open' : 'open') : 'unknown';
+    const hoursDotClass = s.access_days_time ? (isOpen ? 'open' : 'limited') : 'unknown';
     const hoursLabel = isOpen ? 'Open 24/7' : (s.access_days_time || 'Hours unknown');
 
     const tags = [];
@@ -2776,6 +2777,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       panelLocation.style.display = '';
       panelRoute.style.display = 'none';
       clearRoute();
+      applyFilters(); // restore normal filter pipeline after leaving route mode
     });
 
     tabRoute.addEventListener('click', () => {
