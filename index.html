@@ -1050,6 +1050,22 @@ body {
 .fleet-vehicle-name { color: var(--text); font-weight: 500; }
 .fleet-vehicle-time { color: var(--accent); font-weight: 600; }
 
+/* Fleet mode NEVI glow */
+.fleet-mode-active .custom-marker.nevi-station div {
+  box-shadow: 0 0 12px 4px rgba(16,185,129,0.6) !important;
+}
+
+.fleet-mode-badge {
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-weight: 600;
+  background: rgba(249,115,22,0.15);
+  color: var(--orange);
+  border: 1px solid rgba(249,115,22,0.3);
+  margin-left: 8px;
+}
+
 @media (max-width: 768px) {
   .detail-panel {
     width: 100%;
@@ -1074,6 +1090,7 @@ body {
     <div style="display:flex;gap:4px;margin-left:12px;">
       <button class="btn-icon" id="viewMarkers" title="Marker view" style="font-size:12px;padding:6px 10px;background:var(--accent);color:white;">📍</button>
       <button class="btn-icon" id="viewHeat" title="Heat map" style="font-size:12px;padding:6px 10px;">🔥</button>
+      <button class="btn-icon" id="fleetModeBtn" title="Fleet Mode — filter for commercial trucks" style="font-size:12px;padding:6px 10px;margin-left:4px;">🚛</button>
     </div>
   </div>
   <div class="header-stats">
@@ -1684,6 +1701,15 @@ body {
         if (!s.funding_sources || !s.funding_sources.includes(filters.funding)) return false;
       }
 
+      // Fleet mode: 150kW+ and truck-accessible only
+      if (fleetMode) {
+        const isTruck = s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER' ||
+                         s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD' ||
+                         s._maxPower >= 150;
+        if (!isTruck) return false;
+        if (s._maxPower > 0 && s._maxPower < 150) return false;
+      }
+
       // Favorites
       if (filters.favoritesOnly && !favorites.includes(String(s.id))) return false;
 
@@ -1732,10 +1758,13 @@ body {
       const isPlanned = s.status_code === 'P';
       const opacity = isPlanned ? '0.5' : '1';
       const outline = isPlanned ? 'outline:2px dashed rgba(255,255,255,0.4);outline-offset:2px;' : '';
+      const isNevi = s.funding_sources && s.funding_sources.includes('NEVI');
+      const neviGlow = (fleetMode && isNevi) ? 'box-shadow:0 0 12px 4px rgba(16,185,129,0.6);' : '';
+      const neviClass = isNevi ? ' nevi-station' : '';
 
       const icon = L.divIcon({
-        className: 'custom-marker',
-        html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${borderColor ? '3px solid ' + borderColor : '2px solid rgba(255,255,255,0.3)'};opacity:${opacity};${outline}"></div>`,
+        className: 'custom-marker' + neviClass,
+        html: `<div style="width:${size}px;height:${size}px;background:${color};border-radius:50%;border:${borderColor ? '3px solid ' + borderColor : '2px solid rgba(255,255,255,0.3)'};opacity:${opacity};${outline}${neviGlow}"></div>`,
         iconSize: [size, size],
         iconAnchor: [size/2, size/2]
       });
@@ -2336,6 +2365,34 @@ body {
       document.getElementById('viewMarkers').style.background = 'var(--bg-card)';
       document.getElementById('viewMarkers').style.color = 'var(--text)';
       updateMarkers();
+    });
+
+    // Fleet mode
+    document.getElementById('fleetModeBtn').addEventListener('click', () => {
+      fleetMode = !fleetMode;
+      const btn = document.getElementById('fleetModeBtn');
+      btn.style.background = fleetMode ? 'var(--orange)' : 'var(--bg-card)';
+      btn.style.color = fleetMode ? 'white' : 'var(--text)';
+      // Add/remove fleet mode badge
+      let badge = document.getElementById('fleetModeBadge');
+      if (fleetMode) {
+        if (!badge) {
+          badge = document.createElement('span');
+          badge.id = 'fleetModeBadge';
+          badge.className = 'fleet-mode-badge';
+          badge.textContent = '🚛 Fleet Mode';
+          document.querySelector('.header-left').appendChild(badge);
+        }
+        // Auto-set filters for fleet: 150kW+, show truck-friendly
+        filters.minPower = 150;
+        document.getElementById('powerSlider').value = 150;
+        document.getElementById('powerValue').textContent = '150+ kW';
+        document.body.classList.add('fleet-mode-active');
+      } else {
+        if (badge) badge.remove();
+        document.body.classList.remove('fleet-mode-active');
+      }
+      applyFilters();
     });
 
     // Keyboard shortcuts
