@@ -1161,6 +1161,17 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
           <button class="btn-icon" id="locateBtn" title="My Location">📍</button>
         </div>
       </div>
+      <div id="corridorPills" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px;">
+        <span style="font-size:10px;color:var(--text-dim);width:100%;font-weight:600;text-transform:uppercase;letter-spacing:1px;margin-bottom:2px;">Popular Corridors</span>
+        <button class="corridor-pill" data-corridor="I-5" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-5</button>
+        <button class="corridor-pill" data-corridor="I-10" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-10</button>
+        <button class="corridor-pill" data-corridor="I-15" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-15</button>
+        <button class="corridor-pill" data-corridor="I-40" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-40</button>
+        <button class="corridor-pill" data-corridor="I-70" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-70</button>
+        <button class="corridor-pill" data-corridor="I-80" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-80</button>
+        <button class="corridor-pill" data-corridor="I-90" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-90</button>
+        <button class="corridor-pill" data-corridor="I-95" style="padding:4px 10px;font-size:11px;font-weight:600;background:var(--bg-card);color:var(--text-dim);border:1px solid var(--border);border-radius:16px;cursor:pointer;transition:all 0.2s;">I-95</button>
+      </div>
       <div id="routeSearchPanel" style="display:none;">
         <div class="search-box" style="margin-bottom:6px;">
           <input type="text" class="search-input" id="routeOrigin" placeholder="Origin (city, address, or ZIP)" aria-label="Route origin" autocomplete="off" />
@@ -2442,6 +2453,52 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
         document.body.classList.remove('fleet-mode-active');
       }
       applyFilters();
+    });
+
+    // Popular Corridors
+    const corridorEndpoints = {
+      'I-5':  { origin: 'San Diego, CA', dest: 'Seattle, WA' },
+      'I-10': { origin: 'Los Angeles, CA', dest: 'Jacksonville, FL' },
+      'I-15': { origin: 'San Diego, CA', dest: 'Great Falls, MT' },
+      'I-40': { origin: 'Barstow, CA', dest: 'Wilmington, NC' },
+      'I-70': { origin: 'Denver, CO', dest: 'Baltimore, MD' },
+      'I-80': { origin: 'San Francisco, CA', dest: 'New York, NY' },
+      'I-90': { origin: 'Seattle, WA', dest: 'Boston, MA' },
+      'I-95': { origin: 'Miami, FL', dest: 'Bangor, ME' }
+    };
+    document.querySelectorAll('.corridor-pill').forEach(pill => {
+      pill.addEventListener('click', () => {
+        const c = corridorEndpoints[pill.dataset.corridor];
+        if (!c) return;
+        // Switch to route tab and fill in
+        document.getElementById('searchTabRoute').click();
+        document.getElementById('routeOrigin').value = c.origin;
+        document.getElementById('routeDestination').value = c.dest;
+        document.getElementById('routeRadius').value = '10';
+        // Trigger route search
+        searchRoute();
+        // Highlight active pill
+        document.querySelectorAll('.corridor-pill').forEach(p => {
+          p.style.background = 'var(--bg-card)';
+          p.style.color = 'var(--text-dim)';
+          p.style.borderColor = 'var(--border)';
+        });
+        pill.style.background = 'rgba(59,130,246,0.15)';
+        pill.style.color = 'var(--accent)';
+        pill.style.borderColor = 'var(--accent)';
+      });
+      pill.addEventListener('mouseenter', () => {
+        if (pill.style.color !== 'var(--accent)') {
+          pill.style.borderColor = 'var(--accent)';
+          pill.style.color = 'var(--text)';
+        }
+      });
+      pill.addEventListener('mouseleave', () => {
+        if (pill.style.background !== 'rgba(59,130,246,0.15)') {
+          pill.style.borderColor = 'var(--border)';
+          pill.style.color = 'var(--text-dim)';
+        }
+      });
     });
 
     // Keyboard shortcuts
