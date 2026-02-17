@@ -1076,6 +1076,14 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 .fleet-vehicle-name { color: var(--text); font-weight: 500; }
 .fleet-vehicle-time { color: var(--accent); font-weight: 600; }
 
+/* Data freshness pulse */
+@keyframes freshness-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+.freshness-fresh { animation: freshness-pulse 2s ease infinite; }
+
 /* Fleet mode NEVI glow */
 .fleet-mode-active .custom-marker.nevi-station div {
   box-shadow: 0 0 12px 4px rgba(16,185,129,0.6) !important;
@@ -1113,6 +1121,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
   <div class="header-left">
     <div class="logo">⚡ <span>Charge</span>Fleet</div>
     <span class="badge badge-live">LIVE DATA</span>
+    <span class="badge" id="freshnessBadge" style="display:none;background:rgba(59,130,246,0.15);color:var(--accent);font-size:10px;"></span>
     <div style="display:flex;gap:4px;margin-left:12px;">
       <button class="btn-icon" id="viewMarkers" title="Marker view" style="font-size:12px;padding:6px 10px;background:var(--accent);color:white;">📍</button>
       <button class="btn-icon" id="viewHeat" title="Heat map" style="font-size:12px;padding:6px 10px;">🔥</button>
@@ -2191,13 +2200,27 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     document.getElementById('totalPorts').textContent = totalPorts.toLocaleString();
     document.getElementById('totalNetworks').textContent = networks.size;
 
-    // Fetch last updated date
+    // Fetch last updated date + freshness badge
     fetch(`${API_BASE}/last-updated.json?api_key=${API_KEY}`)
       .then(r => r.json())
       .then(d => {
         if (d.last_updated) {
           const date = new Date(d.last_updated);
           document.getElementById('lastUpdated').textContent = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+          // Freshness badge
+          const hoursAgo = Math.round((Date.now() - date.getTime()) / 3600000);
+          const badge = document.getElementById('freshnessBadge');
+          if (hoursAgo < 1) {
+            badge.textContent = 'Data: Updated just now';
+          } else if (hoursAgo < 24) {
+            badge.textContent = `Data: Updated ${hoursAgo}h ago`;
+          } else {
+            const daysAgo = Math.round(hoursAgo / 24);
+            badge.textContent = `Data: Updated ${daysAgo}d ago`;
+          }
+          badge.style.display = '';
+          if (hoursAgo < 24) badge.classList.add('freshness-fresh');
+          else badge.classList.remove('freshness-fresh');
         }
       })
       .catch(() => {});
