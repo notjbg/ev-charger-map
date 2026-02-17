@@ -13,15 +13,23 @@ ChargeFleet surfaces only the stations that matter for commercial fleets: high-p
 ## Features
 
 - **2,700+ commercial-relevant stations** aggregated from AFDC data
+- **Station detail panel** — slide-out panel with connector badges, hours indicator, truck access, directions, and save functionality
+- **Fleet Mode** 🚛 — one-click filter for truck-accessible 150kW+ stations with estimated charge times for Tesla Semi, eCascadia, and Volvo VNR Electric
+- **Route corridor search** — find stations along any US highway with gap analysis and spacing metrics
+- **Popular corridors** — quick-search pills for I-5, I-10, I-15, I-40, I-70, I-80, I-90, I-95
 - **Smart filtering** by vehicle class (MD/HD), connector type (NACS, CCS, CHAdeMO, MCS), power level, network, facility type, and federal funding source
-- **Real-time AFDC data** — always current with DOE's Alternative Fuel Station Locator
+- **Data freshness badge** — shows when AFDC data was last updated
+- **Heatmap view** — toggle between markers and heat overlay for density analysis
 - **Marker clustering** with color-coded power levels and vehicle class indicators
 - **Station details** with pricing, hours, directions, port counts
 - **Location search** with geocoding and "Near Me" geolocation
-- **CSV export** of filtered results for fleet planning
+- **GeoJSON & CSV export** of filtered results for fleet planning
 - **Shareable URLs** with map position and filter state preserved in the hash
-- **Dark mode** optimized for extended use
+- **Statistics dashboard** — HD/MD/NEVI/MCS/planned station counts
+- **Favorites** — save stations locally for quick access
+- **Dark mode** with glassmorphism UI
 - **Mobile responsive** — works on phone, tablet, desktop
+- **PWA support** — installable as a standalone app
 - **Zero dependencies** — single HTML file, no build tools, no frameworks
 
 ## Data Sources
@@ -46,10 +54,11 @@ All data from the [AFDC Alternative Fuel Station Locator API](https://developer.
 
 ## Tech Stack
 
-- Vanilla HTML/CSS/JavaScript (single file)
+- Vanilla HTML/CSS/JavaScript (single file, ~3,100 lines)
 - [Leaflet](https://leafletjs.com/) + OpenStreetMap tiles
 - [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
-- AFDC API (DEMO_KEY — replace with your own from [developer.nrel.gov](https://developer.nrel.gov/signup/))
+- [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for heatmap view
+- AFDC API with localStorage caching (6h TTL)
 
 ## Usage
 
@@ -66,7 +75,7 @@ cp index.html /your/web/root/
 
 ## API Key
 
-The app ships with `DEMO_KEY` which has rate limits (1,000 requests/hour per IP). For production use, get a free key at [developer.nrel.gov/signup](https://developer.nrel.gov/signup/) and replace `DEMO_KEY` in the source.
+The app uses a real NREL API key (1,000 requests/hour). For your own deployment, get a free key at [developer.nrel.gov/signup](https://developer.nrel.gov/signup/) and replace the key in the source.
 
 ## License
 
@@ -74,4 +83,4 @@ MIT
 
 ## Author
 
-Built by [Jonah Berg](https://github.com/notjbg).
+Built by [Jonah Berg](https://github.com/notjbg) — Senior Manager, Strategic Communications at TRC Companies, Clean Transportation Solutions.
