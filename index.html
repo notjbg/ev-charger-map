@@ -637,6 +637,24 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
   min-width: 160px;
 }
 
+.legend-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  margin-bottom: 8px;
+}
+
+.legend-toggle-arrow {
+  font-size: 10px;
+  color: var(--text-dim);
+  transition: transform 0.2s ease;
+}
+
+.legend.collapsed .legend-toggle-arrow { transform: rotate(180deg); }
+.legend.collapsed .legend-body { display: none; }
+
 .legend-title {
   font-weight: 700;
   font-size: 11px;
@@ -1403,18 +1421,24 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       </div>
     </div>
 
-    <div class="legend">
-      <div class="legend-title">Power Level</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> 1 MW+ (MCS)</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> 350+ kW</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 150–349 kW</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> 50–149 kW</div>
-      <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> Unknown</div>
-      <div style="margin-top:8px">
-        <div class="legend-title">Vehicle Class</div>
-        <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f97316"></div> HD (Class 7-8)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f59e0b"></div> MD (Class 3-6)</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;opacity:0.5;outline:2px dashed rgba(255,255,255,0.4);outline-offset:1px"></div> Planned</div>
+    <div class="legend" id="legendCard">
+      <div class="legend-toggle" id="legendToggle">
+        <div class="legend-title" style="margin-bottom:0;">Legend</div>
+        <span class="legend-toggle-arrow">▼</span>
+      </div>
+      <div class="legend-body">
+        <div class="legend-title">Power Level</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> 1 MW+ (MCS)</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f97316"></div> 350+ kW</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> 150–349 kW</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#3b82f6"></div> 50–149 kW</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6"></div> Unknown</div>
+        <div style="margin-top:8px">
+          <div class="legend-title">Vehicle Class</div>
+          <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f97316"></div> HD (Class 7-8)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:transparent;border:3px solid #f59e0b"></div> MD (Class 3-6)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#8b5cf6;opacity:0.5;outline:2px dashed rgba(255,255,255,0.4);outline-offset:1px"></div> Planned</div>
+        </div>
       </div>
     </div>
 
@@ -2603,6 +2627,11 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
           pill.style.color = 'var(--text-dim)';
         }
       });
+    });
+
+    // Legend toggle
+    document.getElementById('legendToggle').addEventListener('click', () => {
+      document.getElementById('legendCard').classList.toggle('collapsed');
     });
 
     // Keyboard shortcuts
