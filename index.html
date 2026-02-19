@@ -1553,9 +1553,9 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     const loadingEl = document.getElementById('loadingOverlay');
     const progressEl = document.getElementById('loadingProgress');
 
-    // Try localStorage cache first
+    // Try sessionStorage cache first (per-tab, avoids stale data across sessions)
     try {
-      const cached = localStorage.getItem(CACHE_KEY);
+      const cached = sessionStorage.getItem(CACHE_KEY);
       if (cached) {
         const { data, ts } = JSON.parse(cached);
         if (Date.now() - ts < CACHE_TTL && data.length > 0) {
@@ -1653,7 +1653,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 
       // Cache to localStorage
       try {
-        localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() }));
+        sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() }));
       } catch(e) { console.warn('Cache write failed:', e); }
 
       updateHeaderStats();
@@ -1669,7 +1669,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       console.error('Failed to load data:', err);
       // Fall back to stale cache if available
       try {
-        const cached = localStorage.getItem(CACHE_KEY);
+        const cached = sessionStorage.getItem(CACHE_KEY);
         if (cached) {
           const { data, ts } = JSON.parse(cached);
           if (data && data.length > 0) {
@@ -1756,7 +1756,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       const newStations = Array.from(stationMap.values());
       if (newStations.length > 0) {
         allStations = newStations;
-        try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() })); } catch(e) {}
+        try { sessionStorage.setItem(CACHE_KEY, JSON.stringify({ data: allStations, ts: Date.now() })); } catch(e) {}
         updateHeaderStats();
         applyFilters();
         if (newStations.length !== oldCount) {
