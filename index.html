@@ -2182,11 +2182,32 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     countEl.textContent = `${filteredStations.length} of ${allStations.length}`;
 
     if (filteredStations.length === 0) {
+      // Build context-aware hints based on active filters
+      const activeFilters = [];
+      if (filters.vehicleClass !== 'all') activeFilters.push(`Vehicle: ${filters.vehicleClass}`);
+      if (filters.connector !== 'all') activeFilters.push(`Connector: ${filters.connector}`);
+      if (filters.minPower > 150) activeFilters.push(`Min power: ${filters.minPower} kW`);
+      if (filters.network !== 'all') activeFilters.push(`Network: ${filters.network}`);
+      if (filters.facility !== 'all') activeFilters.push(`Facility: ${filters.facility}`);
+      if (filters.funding !== 'all') activeFilters.push(`Funding: ${filters.funding}`);
+      if (filters.state !== 'all') activeFilters.push(`State: ${filters.state}`);
+      if (filters.favoritesOnly) activeFilters.push('Favorites only');
+      if (fleetMode) activeFilters.push('Fleet mode');
+
+      const filterHints = activeFilters.length > 0
+        ? `<div style="margin-top:8px;font-size:11px;color:var(--text-dim);">Active filters: ${activeFilters.join(', ')}</div>`
+        : '';
+
       listEl.innerHTML = `
         <div class="empty-state">
-          <div class="empty-state-icon">🔌</div>
-          <div class="empty-state-title">No stations match</div>
-          <div class="empty-state-text">Try adjusting your filters or search area.</div>
+          <div class="empty-state-icon">🔍</div>
+          <div class="empty-state-title">No stations found</div>
+          <div class="empty-state-text">
+            No charging stations match your current filters.<br>
+            Try broadening your search — lower the minimum power, select "All" for network or connector type, or zoom out on the map.
+          </div>
+          ${filterHints}
+          <button class="btn btn-primary" style="margin-top:14px;font-size:12px;padding:8px 16px;" onclick="document.getElementById('resetFilters').click()">Reset All Filters</button>
         </div>
       `;
       return;
