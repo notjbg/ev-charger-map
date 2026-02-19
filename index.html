@@ -2800,6 +2800,8 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     if (filters.status !== 'E') params.set('st', filters.status);
     if (filters.state !== 'all') params.set('state', filters.state);
     if (filters.search) params.set('q', filters.search);
+    if (filters.favoritesOnly) params.set('fav', '1');
+    if (fleetMode) params.set('fleet', '1');
     if (selectedStationId) params.set('sid', selectedStationId);
     window.history.replaceState(null, '', '#' + params.toString());
   }
@@ -2855,6 +2857,17 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     if (params.has('q')) {
       filters.search = params.get('q');
       document.getElementById('searchInput').value = filters.search;
+    }
+    if (params.has('fav') && params.get('fav') === '1') {
+      filters.favoritesOnly = true;
+      const favBtn = document.getElementById('favToggle');
+      favBtn.style.background = 'rgba(245,158,11,0.15)';
+      favBtn.style.borderColor = 'var(--amber)';
+      document.getElementById('favToggleLabel').innerHTML = 'Showing Favorites Only';
+    }
+    if (params.has('fleet') && params.get('fleet') === '1') {
+      // Will be activated after init via a deferred call
+      setTimeout(() => document.getElementById('fleetModeBtn').click(), 100);
     }
     if (params.has('sid')) {
       selectedStationId = parseInt(params.get('sid'));
