@@ -1854,15 +1854,43 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     const panel = document.getElementById('detailPanel');
     const body = document.getElementById('detailPanelBody');
 
-    const connectors = (s.ev_connector_types || []).map(c => {
-      const labels = { 'TESLA': 'NACS', 'J1772COMBO': 'CCS', 'CHADEMO': 'CHAdeMO', 'J1772': 'J1772', 'J3271': 'MCS', 'NEMA1450': 'NEMA 14-50' };
-      return labels[c] || c;
-    });
+    const connectorIcons = { 'TESLA': '🔌', 'J1772COMBO': '⚡', 'CHADEMO': '🔋', 'J1772': '🔌', 'J3271': '⚡', 'NEMA1450': '🔌' };
+    const connectorLabels = { 'TESLA': 'NACS', 'J1772COMBO': 'CCS', 'CHADEMO': 'CHAdeMO', 'J1772': 'J1772', 'J3271': 'MCS', 'NEMA1450': 'NEMA 14-50' };
+
+    // Build per-port power breakdown from ev_charging_units
+    let portDetails = [];
+    let evseCount = 0;
+    if (s.ev_charging_units && s.ev_charging_units.length > 0) {
+      s.ev_charging_units.forEach(unit => {
+        evseCount++;
+        if (unit.connectors) {
+          Object.entries(unit.connectors).forEach(([type, info]) => {
+            const label = connectorLabels[type] || type;
+            const icon = connectorIcons[type] || '⚡';
+            const power = info.power_kw ? `${info.power_kw} kW` : 'Unknown';
+            portDetails.push({ icon, label, power, powerKw: info.power_kw || 0 });
+          });
+        }
+      });
+    }
+
+    const connectors = (s.ev_connector_types || []).map(c => connectorLabels[c] || c);
 
     const powerClass = s._maxPower >= 350 ? 'power-ultra' : s._maxPower >= 150 ? 'power-fast' : 'power-standard';
-    const connectorBadges = connectors.map(c =>
-      `<span class="connector-badge ${powerClass}">${c}</span>`
-    ).join('');
+
+    // If we have per-port details, show them; otherwise fall back to connector list
+    let connectorHtml;
+    if (portDetails.length > 0) {
+      connectorHtml = portDetails.map(p => {
+        const pClass = p.powerKw >= 350 ? 'power-ultra' : p.powerKw >= 150 ? 'power-fast' : 'power-standard';
+        return `<span class="connector-badge ${pClass}">${p.icon} ${p.label} &middot; ${p.power}</span>`;
+      }).join('');
+    } else {
+      connectorHtml = connectors.map(c => {
+        const icon = connectorIcons[(s.ev_connector_types || [])[connectors.indexOf(c)]] || '⚡';
+        return `<span class="connector-badge ${powerClass}">${icon} ${c}</span>`;
+      }).join('') || '<span style="color:var(--text-dim);font-size:13px;">Unknown</span>';
+    }
 
     const isTruckFriendly = s.facility_type === 'TRUCK_STOP' || s.facility_type === 'TRAVEL_CENTER' ||
                              s.maximum_vehicle_class === 'HD' || s.maximum_vehicle_class === 'MD';
@@ -1894,6 +1922,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       distanceHtml = `<div style="font-size:13px;color:var(--cyan);font-weight:600;margin-bottom:12px;">📏 ${dist.toFixed(1)} miles away</div>`;
     }
 
+    const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${s.latitude},${s.longitude}`;
     const directionsUrl = `https://www.google.com/maps/dir/?api=1&destination=${s.latitude},${s.longitude}`;
 
     let fleetHtml = '';
@@ -1909,13 +1938,16 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 
     body.innerHTML = `
       <div class="detail-station-name">${escHtml(s.station_name)}</div>
-      <div class="detail-address">${escHtml(s.street_address)}, ${escHtml(s.city)}, ${s.state} ${s.zip}</div>
+      <a href="${mapsUrl}" target="_blank" rel="noopener noreferrer" class="detail-address" style="display:block;text-decoration:none;color:var(--text-dim);">
+        📍 ${escHtml(s.street_address)}, ${escHtml(s.city)}, ${s.state} ${s.zip}
+        <span style="color:var(--accent);font-size:11px;margin-left:4px;">Open in Maps ↗</span>
+      </a>
       <span class="detail-network-badge">${escHtml(networkDisplay(s.ev_network) || 'Unknown Network')}</span>
       <div class="detail-tags">${tags.join('')}</div>
       ${distanceHtml}
       ${isTruckFriendly ? '<div class="detail-truck-access">🚛 Truck Accessible</div>' : ''}
       <div class="detail-section-label">Connectors</div>
-      <div class="detail-connectors">${connectorBadges || '<span style="color:var(--text-dim);font-size:13px;">Unknown</span>'}</div>
+      <div class="detail-connectors">${connectorHtml}</div>
       <div class="detail-hours">
         <span class="hours-dot ${hoursDotClass}"></span>
         <span style="color:var(--text);">${escHtml(hoursLabel)}</span>
@@ -1930,6 +1962,14 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
           <div class="detail-grid-value">${s.ev_dc_fast_num || '—'}</div>
         </div>
         <div class="detail-grid-item">
+          <div class="detail-grid-label">EVSE Count</div>
+          <div class="detail-grid-value">${evseCount > 0 ? evseCount : (s.ev_dc_fast_num || '—')}</div>
+        </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Vehicle Class</div>
+          <div class="detail-grid-value">${s.maximum_vehicle_class === 'HD' ? 'HD (Class 7-8)' : s.maximum_vehicle_class === 'MD' ? 'MD (Class 3-6)' : 'Standard'}</div>
+        </div>
+        <div class="detail-grid-item">
           <div class="detail-grid-label">Facility</div>
           <div class="detail-grid-value">${facilityLabels[s.facility_type] || s.facility_type || '—'}</div>
         </div>
@@ -1937,12 +1977,21 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
           <div class="detail-grid-label">Status</div>
           <div class="detail-grid-value">${s.status_code === 'E' ? '✅ Available' : s.status_code === 'P' ? '🔮 Planned' : s.status_code}</div>
         </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Funding</div>
+          <div class="detail-grid-value">${s.funding_sources && s.funding_sources.length > 0 ? s.funding_sources.join(', ') : '—'}</div>
+        </div>
+        <div class="detail-grid-item">
+          <div class="detail-grid-label">Last Updated</div>
+          <div class="detail-grid-value">${s.date_last_confirmed || '—'}</div>
+        </div>
       </div>
       ${s.ev_pricing ? `<div style="font-size:13px;color:var(--green);margin-bottom:8px;">💰 ${escHtml(s.ev_pricing)}</div>` : ''}
       ${s.station_phone ? `<div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">📞 <a href="tel:${encodeURIComponent(s.station_phone.split(' ')[0])}" style="color:var(--accent);text-decoration:none;">${escHtml(s.station_phone.split(' ')[0])}</a></div>` : ''}
       ${fleetHtml}
       <div class="detail-actions">
         <a class="btn btn-primary" href="${directionsUrl}" target="_blank" rel="noopener noreferrer" style="text-decoration:none;color:white;">📍 Directions</a>
+        <button class="btn btn-secondary" onclick="navigator.clipboard.writeText(window.location.origin+window.location.pathname+'#sid=${s.id}&lat=${s.latitude}&lng=${s.longitude}&z=14').then(()=>{document.getElementById('toast').textContent='Station link copied!';document.getElementById('toast').classList.add('show');setTimeout(()=>document.getElementById('toast').classList.remove('show'),3000)})">🔗 Share</button>
         <button class="btn btn-secondary fav-btn" data-fav="${s.id}">${favorites.includes(String(s.id)) ? '★ Saved' : '☆ Save'}</button>
       </div>
     `;
