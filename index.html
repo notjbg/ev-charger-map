@@ -104,17 +104,55 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
   transition: all 0.3s ease;
 }
 
-/* Skeleton loading animation */
-@keyframes skeleton-pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 0.8; }
+/* Skeleton shimmer animation */
+@keyframes skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .skeleton {
-  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 50%, var(--bg-card) 75%);
-  background-size: 200% 100%;
-  animation: skeleton-pulse 1.5s ease infinite;
+  background: linear-gradient(90deg, var(--bg-card) 25%, var(--bg-hover) 37%, var(--bg-card) 63%);
+  background-size: 400% 100%;
+  animation: skeleton-shimmer 1.8s ease infinite;
   border-radius: var(--radius);
+}
+
+.skeleton-line {
+  height: 12px;
+  margin-bottom: 8px;
+  border-radius: 6px;
+}
+
+.skeleton-card {
+  padding: 14px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  margin-bottom: 8px;
+}
+
+.skeleton-card .skeleton-title {
+  height: 14px;
+  width: 70%;
+  margin-bottom: 10px;
+}
+
+.skeleton-card .skeleton-text {
+  height: 10px;
+  width: 50%;
+  margin-bottom: 6px;
+}
+
+.skeleton-card .skeleton-tags {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.skeleton-card .skeleton-tag {
+  height: 20px;
+  width: 48px;
+  border-radius: 10px;
 }
 
 /* Header */
@@ -1329,11 +1367,23 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     <div id="map"></div>
 
     <div class="loading-overlay" id="loadingOverlay">
-      <div class="spinner"></div>
-      <div class="loading-text">Loading commercial charging stations...</div>
-      <div class="loading-progress" id="loadingProgress"></div>
-      <div class="progress-bar-container" style="width:200px;height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;">
-        <div class="progress-bar-fill" id="progressBar" style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s ease;"></div>
+      <div style="display:flex;gap:24px;align-items:flex-start;max-width:600px;width:90%;">
+        <!-- Skeleton sidebar preview -->
+        <div style="width:260px;flex-shrink:0;">
+          <div class="skeleton skeleton-line" style="width:40%;height:10px;margin-bottom:12px;"></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-title"></div><div class="skeleton skeleton-text"></div><div class="skeleton-tags"><div class="skeleton skeleton-tag"></div><div class="skeleton skeleton-tag" style="width:60px;"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-title" style="width:85%;"></div><div class="skeleton skeleton-text" style="width:40%;"></div><div class="skeleton-tags"><div class="skeleton skeleton-tag" style="width:52px;"></div><div class="skeleton skeleton-tag"></div><div class="skeleton skeleton-tag" style="width:36px;"></div></div></div>
+          <div class="skeleton-card"><div class="skeleton skeleton-title" style="width:60%;"></div><div class="skeleton skeleton-text" style="width:55%;"></div><div class="skeleton-tags"><div class="skeleton skeleton-tag" style="width:44px;"></div><div class="skeleton skeleton-tag" style="width:56px;"></div></div></div>
+        </div>
+        <!-- Loading info -->
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding-top:24px;">
+          <div class="spinner"></div>
+          <div class="loading-text">Loading commercial charging stations...</div>
+          <div class="loading-progress" id="loadingProgress"></div>
+          <div class="progress-bar-container" style="width:200px;height:4px;background:var(--border);border-radius:2px;margin-top:12px;overflow:hidden;">
+            <div class="progress-bar-fill" id="progressBar" style="width:0%;height:100%;background:var(--accent);border-radius:2px;transition:width 0.3s ease;"></div>
+          </div>
+        </div>
       </div>
       <div id="errorBanner" style="display:none;margin-top:16px;padding:16px;background:rgba(239,68,68,0.1);border:1px solid var(--red);border-radius:var(--radius);text-align:center;max-width:360px;">
         <div style="font-size:14px;font-weight:600;color:var(--red);margin-bottom:8px;">Failed to load station data</div>
