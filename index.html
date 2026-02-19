@@ -2758,10 +2758,20 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     if (idx === -1) favorites.push(id);
     else favorites.splice(idx, 1);
     localStorage.setItem('chargefleet_favs', JSON.stringify(favorites));
-    // Update star icons in DOM
+    const isFav = favorites.includes(id);
+    // Update star icons in DOM (list cards show just star, detail panel shows text)
     document.querySelectorAll(`.fav-btn[data-fav="${id}"]`).forEach(btn => {
-      btn.textContent = favorites.includes(id) ? '★' : '☆';
+      if (btn.closest('.detail-actions')) {
+        btn.textContent = isFav ? '★ Saved' : '☆ Save';
+      } else {
+        btn.textContent = isFav ? '★' : '☆';
+      }
     });
+    // Update favorites count badge
+    const countEl = document.getElementById('favCount');
+    if (countEl) countEl.textContent = favorites.length;
+    // Show brief toast feedback
+    showToast(isFav ? 'Station saved to favorites' : 'Removed from favorites');
     // Re-filter if favorites-only is active
     if (filters.favoritesOnly) { applyFilters(); }
   }
