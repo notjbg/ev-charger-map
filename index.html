@@ -1231,6 +1231,31 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     border-radius: 16px 16px 0 0;
   }
   .detail-panel.open { transform: translateY(0); }
+
+  .detail-panel .detail-panel-header {
+    padding-top: 6px;
+  }
+
+  .detail-panel .detail-drag-handle {
+    display: block;
+    padding: 8px 0 2px;
+    text-align: center;
+    cursor: grab;
+    touch-action: none;
+  }
+
+  .detail-panel .detail-drag-handle .handle-bar {
+    width: 36px;
+    height: 4px;
+    background: var(--text-dim);
+    border-radius: 2px;
+    margin: 0 auto;
+    opacity: 0.6;
+  }
+
+  .sidebar .filters { max-height: 28vh; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  .sidebar .station-list { -webkit-overflow-scrolling: touch; }
 }
 </style>
 </head>
@@ -1528,6 +1553,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 
     <!-- Detail Panel -->
     <div class="detail-panel" id="detailPanel">
+      <div class="detail-drag-handle" id="detailDragHandle" style="display:none;"><div class="handle-bar"></div></div>
       <div class="detail-panel-header">
         <span style="font-size:13px;font-weight:600;color:var(--text-dim);">Station Details</span>
         <button class="detail-panel-close" id="detailPanelClose">✕</button>
@@ -2801,6 +2827,30 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
         else if (h < vh * 0.5) { sidebar.style.height = '30vh'; sidebar.classList.remove('collapsed'); }
         else { sidebar.style.height = '70vh'; sidebar.classList.remove('collapsed'); }
         setTimeout(() => map.invalidateSize(), 350);
+      });
+
+      // Detail panel drag handle
+      const detailHandle = document.getElementById('detailDragHandle');
+      detailHandle.style.display = 'block';
+      const detailPanel = document.getElementById('detailPanel');
+      let detailStartY, detailStartH;
+      detailHandle.addEventListener('touchstart', e => {
+        detailStartY = e.touches[0].clientY;
+        detailStartH = detailPanel.offsetHeight;
+        detailPanel.style.transition = 'none';
+      });
+      detailHandle.addEventListener('touchmove', e => {
+        const dy = detailStartY - e.touches[0].clientY;
+        const newH = Math.max(100, Math.min(window.innerHeight * 0.9, detailStartH + dy));
+        detailPanel.style.height = newH + 'px';
+        e.preventDefault();
+      }, { passive: false });
+      detailHandle.addEventListener('touchend', () => {
+        detailPanel.style.transition = 'height 0.3s ease, transform 0.3s ease';
+        const h = detailPanel.offsetHeight, vh = window.innerHeight;
+        if (h < vh * 0.2) { closeDetailPanel(); detailPanel.style.height = ''; }
+        else if (h < vh * 0.5) { detailPanel.style.height = '40vh'; }
+        else { detailPanel.style.height = '70vh'; }
       });
     }
 
