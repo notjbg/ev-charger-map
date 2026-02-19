@@ -1383,6 +1383,10 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
         <strong style="color:var(--amber);">Use filters</strong> to narrow by vehicle class, connector type, power level, or network.
         <strong style="color:var(--green);">Export CSV</strong> for fleet planning.
       </div>
+      <label style="display:flex;align-items:center;gap:6px;margin-top:10px;font-size:11px;color:var(--text-dim);cursor:pointer;">
+        <input type="checkbox" id="welcomeDontShow" style="accent-color:var(--accent);cursor:pointer;">
+        Don't show this again
+      </label>
     </div>
 
     <!-- Detail Panel -->
@@ -2570,8 +2574,14 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       }
     });
 
-    // Welcome close
+    // Welcome close — hide and persist if checkbox is checked
+    if (localStorage.getItem('chargefleet_welcome_hidden') === '1') {
+      document.getElementById('welcomeCard').style.display = 'none';
+    }
     document.getElementById('welcomeClose').addEventListener('click', () => {
+      if (document.getElementById('welcomeDontShow').checked) {
+        localStorage.setItem('chargefleet_welcome_hidden', '1');
+      }
       document.getElementById('welcomeCard').style.display = 'none';
     });
 
