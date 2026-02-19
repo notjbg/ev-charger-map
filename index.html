@@ -1315,9 +1315,9 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     <span class="badge badge-live">LIVE DATA</span>
     <span class="badge" id="freshnessBadge" style="display:none;background:rgba(59,130,246,0.15);color:var(--accent);font-size:10px;"></span>
     <div style="display:flex;gap:4px;margin-left:12px;">
-      <button class="btn-icon" id="viewMarkers" title="Marker view" style="font-size:12px;padding:6px 10px;background:var(--accent);color:white;">📍</button>
-      <button class="btn-icon" id="viewHeat" title="Heat map" style="font-size:12px;padding:6px 10px;">🔥</button>
-      <button class="btn-icon" id="fleetModeBtn" title="Fleet Mode — filter for commercial trucks" style="font-size:12px;padding:6px 10px;margin-left:4px;">🚛</button>
+      <button class="btn-icon" id="viewMarkers" title="Marker view" aria-label="Marker view" style="font-size:12px;padding:6px 10px;background:var(--accent);color:white;">📍</button>
+      <button class="btn-icon" id="viewHeat" title="Heat map" aria-label="Heat map view" style="font-size:12px;padding:6px 10px;">🔥</button>
+      <button class="btn-icon" id="fleetModeBtn" title="Fleet Mode — filter for commercial trucks" aria-label="Fleet Mode" style="font-size:12px;padding:6px 10px;margin-left:4px;">🚛</button>
     </div>
   </div>
   <div class="header-stats">
@@ -1515,7 +1515,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     </div>
   </div>
 
-  <button class="sidebar-toggle" id="sidebarToggle">◀</button>
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">◀</button>
 
   <div class="map-container" role="main" aria-label="Interactive map">
     <div id="map"></div>
@@ -1945,7 +1945,8 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
         if (!s.ev_connector_types || !s.ev_connector_types.includes(filters.connector)) return false;
       }
 
-      // Min power
+      // Min power (exclude unknown-power stations when a minimum is set)
+      if (filters.minPower > 150 && s._maxPower === 0) return false;
       if (filters.minPower > 0 && s._maxPower > 0 && s._maxPower < filters.minPower) return false;
 
       // Network
@@ -2397,7 +2398,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
       const selected = s.id === selectedStationId ? ' selected' : '';
 
       return `
-        <div class="station-card${selected}" data-id="${s.id}">
+        <div class="station-card${selected}" data-id="${s.id}" tabindex="0" role="button" aria-label="${escHtml(s.station_name || 'Unknown Station')}">
           <div class="station-name" style="display:flex;align-items:center;">
             <span style="color:${getPowerColor(s._maxPower)};font-size:10px;">●</span>
             <span style="flex:1;overflow:hidden;text-overflow:ellipsis;">${escHtml(s.station_name || 'Unknown Station')}</span>
@@ -2416,7 +2417,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 
     // Card click handlers
     listEl.querySelectorAll('.station-card').forEach(card => {
-      card.addEventListener('click', () => {
+      const handler = () => {
         const id = parseInt(card.dataset.id);
         selectStation(id);
         const station = allStations.find(s => s.id === id);
@@ -2424,6 +2425,10 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
           map.setView([station.latitude, station.longitude], 14);
           openDetailPanel(station);
         }
+      };
+      card.addEventListener('click', handler);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handler(); }
       });
     });
   }
@@ -3195,6 +3200,14 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
     }
     if (params.has('sid')) {
       selectedStationId = parseInt(params.get('sid'));
+      // Open detail panel for this station after data loads
+      setTimeout(() => {
+        const station = allStations.find(s => s.id === selectedStationId);
+        if (station) {
+          openDetailPanel(station);
+          map.setView([station.latitude, station.longitude], Math.max(map.getZoom(), 12));
+        }
+      }, 3000);
     }
   }
 
@@ -3336,7 +3349,7 @@ button, .chip, .btn, .btn-icon, .station-card, .info-card, .legend, a {
 
     } catch (err) {
       console.error('Route search error:', err);
-      status.innerHTML = `<span style="color:var(--red);">❌ Route search failed: ${err.message}</span>`;
+      status.innerHTML = `<span style="color:var(--red);">❌ Route search failed: ${escHtml(err.message)}</span>`;
     }
   }
 
