@@ -58,7 +58,7 @@ All data from the [AFDC Alternative Fuel Station Locator API](https://developer.
 - [Leaflet](https://leafletjs.com/) + OpenStreetMap tiles
 - [Leaflet.markercluster](https://github.com/Leaflet/Leaflet.markercluster)
 - [Leaflet.heat](https://github.com/Leaflet/Leaflet.heat) for heatmap view
-- AFDC API with localStorage caching (6h TTL)
+- AFDC API with sessionStorage caching (24h TTL)
 
 ## Usage
 
@@ -75,7 +75,25 @@ cp index.html /your/web/root/
 
 ## API Key
 
-The app uses a real NREL API key (1,000 requests/hour). For your own deployment, get a free key at [developer.nrel.gov/signup](https://developer.nrel.gov/signup/) and replace the key in the source.
+The app includes an NREL API key directly in the client-side source code. This is a deliberate design decision:
+
+- **The key is free** — Anyone can obtain one in 30 seconds at [developer.nrel.gov/signup](https://developer.nrel.gov/signup/)
+- **The data is public** — AFDC station data is published by the U.S. Department of Energy
+- **Read-only access** — The key cannot modify any data
+- **Rate limit: 1,000 requests/hour** — Mitigated by 24-hour sessionStorage caching (most users make 4 API calls on first visit, then zero for 24 hours)
+
+For your own deployment, get a free key and replace it in the source. For high-traffic production use, consider a backend proxy to protect against quota exhaustion.
+
+## Development
+
+```bash
+npm install          # Install dev dependencies (tests, linting)
+npm test             # Run test suite (Vitest)
+npm run lint         # Run ESLint
+npm run format:check # Check Prettier formatting
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
 
 ## License
 
