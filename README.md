@@ -2,7 +2,7 @@
 
 Interactive map of public DC fast charging stations for medium and heavy-duty electric vehicles across the United States.
 
-**[→ Live Demo](https://notjbg.github.io/ev-charger-map/)**
+**[→ Live Demo](https://jonahberg.github.io/ev-charger-map/)**
 
 ## Why This Exists
 
@@ -101,4 +101,4 @@ MIT
 
 ## Author
 
-Built by [Jonah Berg](https://github.com/notjbg) — Senior Manager, Strategic Communications at TRC Companies, Clean Transportation Solutions.
+Built by [Jonah Berg](https://github.com/jonahberg) — Senior Manager, Strategic Communications at TRC Companies, Clean Transportation Solutions.
